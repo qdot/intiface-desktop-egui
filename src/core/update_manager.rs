@@ -1,6 +1,13 @@
+use buttplug::util::device_configuration::load_protocol_config_from_json;
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc,
+};
+use std::{fs::File, io::copy};
 use thiserror::Error;
+use tracing::{error, info};
 
-use super::IntifaceConfiguration;
+use super::{util, IntifaceConfiguration};
 
 const BUTTPLUG_REPO_OWNER: &str = "buttplugio";
 const INTIFACE_REPO_OWNER: &str = "intiface";
@@ -21,27 +28,89 @@ pub enum UpdateError {
 }
 
 #[derive(Default)]
-pub struct UpdateManager {}
+pub struct UpdateManager {
+  needs_device_file_update: Arc<AtomicBool>,
+  needs_engine_update: Arc<AtomicBool>,
+  needs_application_update: Arc<AtomicBool>,
+  is_updating: Arc<AtomicBool>,
+  has_errors: Arc<AtomicBool>
+}
 
 impl UpdateManager {
-  pub async fn check_for_device_file_update(
-    &self,
-    config: &IntifaceConfiguration,
-  ) -> Result<bool, UpdateError> {
+  pub fn check_for_updates(&self, config: &IntifaceConfiguration) {
+    let is_updating = self.is_updating.clone();
+    let needs_device_file_update = self.needs_device_file_update.clone();
+    tokio::spawn(async move {
+      is_updating.store(true, Ordering::SeqCst);
+      tokio::join!((async move { UpdateManager::check_for_device_file_update(&needs_device_file_update).await }));
+      is_updating.store(false, Ordering::SeqCst);
+    });
+  }
+
+  pub fn get_updates(&self) {
+    let mut fut = vec!();
+    if self.needs_device_file_update.load(Ordering::SeqCst) {
+      fut.push(UpdateManager::download_device_file_update());
+    }
+    let is_updating = self.is_updating.clone();
+    tokio::spawn(async move {
+      is_updating.store(true, Ordering::SeqCst);
+      tokio::join!(futures::future::join_all(fut));
+      is_updating.store(false, Ordering::SeqCst);      
+    });
+  }
+
+  pub fn needs_updates(&self) -> bool {
+    self.needs_application_update.load(Ordering::SeqCst) ||
+    self.needs_device_file_update.load(Ordering::SeqCst) ||
+    self.needs_engine_update.load(Ordering::SeqCst)
+  }
+
+  pub fn is_updating(&self) -> bool {
+    self.is_updating.load(Ordering::SeqCst)
+  }
+
+  async fn check_for_device_file_update(needs_update: &Arc<AtomicBool>) {
+    if !util::device_config_file_path().exists() {
+      info!("No configuration file found, prompting for update.");
+      needs_update.store(true, Ordering::SeqCst);
+      return;
+    }
+
+    let device_config_file = String::from_utf8(
+      tokio::fs::read(util::device_config_file_path())
+        .await
+        .unwrap(),
+    )
+    .unwrap();
+    let device_config = match load_protocol_config_from_json(&device_config_file) {
+      Ok(cfg) => cfg,
+      Err(e) => {
+        error!("{:?}", e);
+        needs_update.store(true, Ordering::SeqCst);
+        return;
+      }
+    };
+
     let version = reqwest::get(DEVICE_CONFIG_VERSION_URL)
       .await
+      /*
       .map_err(|e| {
         UpdateError::ConnectionError(DEVICE_CONFIG_VERSION_URL.to_string(), e.to_string())
       })?
+      */
+      .unwrap()
       .text()
       .await
-      .map_err(|e| UpdateError::InvalidData(e.to_string()))?
+      .unwrap()
+      //.map_err(|e| UpdateError::InvalidData(e.to_string()))?
       .parse::<u32>()
-      .map_err(|e| UpdateError::InvalidData(e.to_string()))?;
-    Ok(version > config.current_device_file_version())
+      .unwrap();
+      //.map_err(|e| UpdateError::InvalidData(e.to_string()))?;
+      needs_update.store(version > device_config.version, Ordering::SeqCst);
   }
 
-  pub async fn check_for_application_update(
+  async fn check_for_application_update(
     &self,
     config: &IntifaceConfiguration,
   ) -> Result<bool, UpdateError> {
@@ -56,7 +125,7 @@ impl UpdateManager {
     unimplemented!("Need to implement version update check.")
   }
 
-  pub async fn check_for_engine_update(
+  async fn check_for_engine_update(
     &self,
     config: &IntifaceConfiguration,
   ) -> Result<bool, UpdateError> {
@@ -69,7 +138,13 @@ impl UpdateManager {
     Ok(release.tag_name != *config.current_engine_version())
   }
 
-  pub async fn download_device_file_update(&self, config: &IntifaceConfiguration) {}
+  pub async fn download_device_file_update() {
+    let response = reqwest::get(DEVICE_CONFIG_URL).await.unwrap();
+
+    let mut dest = { File::create(super::util::device_config_file_path()).unwrap() };
+    let content = response.text().await.unwrap();
+    copy(&mut content.as_bytes(), &mut dest).unwrap();
+  }
 
   pub async fn download_application_update(&self, config: &IntifaceConfiguration) {}
 
@@ -84,6 +159,7 @@ mod test {
   use super::super::IntifaceConfiguration;
   use super::*;
 
+  /*
   #[test]
   fn test_device_file_update() {
     // Create the runtime
@@ -94,9 +170,10 @@ mod test {
       let config = IntifaceConfiguration::default();
       let manager = UpdateManager::default();
       // Should always return true.
-      assert!(manager.check_for_device_file_update(&config).await.unwrap());
+      assert!(manager.check_for_device_file_update().await.unwrap());
     })
   }
+  */
 
   #[test]
   fn test_engine_update() {

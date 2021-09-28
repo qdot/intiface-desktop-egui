@@ -1,4 +1,4 @@
-use crate::core::{AppCore, save_config_file};
+use crate::core::{save_config_file, AppCore};
 use eframe::egui;
 
 #[derive(Default)]
@@ -15,21 +15,47 @@ impl SettingsPanel {
 
     ui.vertical(|ui| {
       ui.collapsing("Versions and Updates", |ui| {
+        ui.horizontal(|ui| {
+          if !core.update_manager.is_updating() {
+            if core.update_manager.needs_updates() {
+              if ui.button("Get Updates").clicked() {
+                core.update_manager.get_updates();
+              }
+            }
+            if ui.button("Check For Updates").clicked() {
+              core.update_manager.check_for_updates(&core.config);
+            }
+          } else {
+            ui.label("Waiting for update check to finish...");
+          }
+        });
       });
       ui.collapsing("Device Connection Types", |ui| {
         ui.vertical(|ui| {
           ui.checkbox(core.config.with_bluetooth_le_mut(), "Bluetooth LE");
           ui.checkbox(core.config.with_xinput_mut(), "XInput");
-          ui.checkbox(core.config.with_lovense_connect_service_mut(), "Lovense Connect Service");
-          ui.checkbox(core.config.with_lovense_hid_dongle_mut(), "Lovense HID Dongle");
-          ui.checkbox(core.config.with_lovense_serial_dongle_mut(), "Lovense Serial Dongle");
+          ui.checkbox(
+            core.config.with_lovense_connect_service_mut(),
+            "Lovense Connect Service",
+          );
+          ui.checkbox(
+            core.config.with_lovense_hid_dongle_mut(),
+            "Lovense HID Dongle",
+          );
+          ui.checkbox(
+            core.config.with_lovense_serial_dongle_mut(),
+            "Lovense Serial Dongle",
+          );
           ui.checkbox(core.config.with_hid_mut(), "HID");
           ui.checkbox(core.config.with_serial_port_mut(), "Serial Ports");
         });
-      }); 
+      });
       ui.collapsing("Server Process Settings", |ui| {
         ui.horizontal(|ui| {
-          ui.checkbox(core.config.start_server_on_startup_mut(), "Start Server When Intiface Desktop Launches");
+          ui.checkbox(
+            core.config.start_server_on_startup_mut(),
+            "Start Server When Intiface Desktop Launches",
+          );
         });
         ui.horizontal(|ui| {
           ui.label("Server Name");
@@ -45,12 +71,15 @@ impl SettingsPanel {
             match u16::from_str_radix(&port_str, 10) {
               Ok(port) => {
                 core.config.set_websocket_server_insecure_port(port);
-              },
+              }
               Err(_) => {}
             }
           }
         });
-        ui.checkbox(core.config.websocket_server_all_interfaces_mut(), "Listen on all network interfaces.");
+        ui.checkbox(
+          core.config.websocket_server_all_interfaces_mut(),
+          "Listen on all network interfaces.",
+        );
       });
       ui.collapsing("Other Settings", |ui| {
         ui.horizontal(|ui| {

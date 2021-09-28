@@ -1,13 +1,15 @@
 use crate::core::{load_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
-
-use super::panels::{ServerStatusPanel, SettingsPanel};
+use tracing_subscriber::{Layer, Registry};
+use tracing::info;
+use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel};
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
   ServerStatus,
   Devices,
   Settings,
+  Log,
   Help,
   About,
 }
@@ -22,6 +24,13 @@ pub struct TemplateApp {
 
 impl Default for TemplateApp {
   fn default() -> Self {
+    let fmt_sub = tracing_subscriber::fmt::Layer::default();
+
+    let subscriber = fmt_sub
+      .and_then(super::panels::layer())
+      .with_subscriber(Registry::default());
+
+    tracing::subscriber::set_global_default(subscriber).unwrap();
     let mut core = AppCore::default();
     let json_str = load_config_file().unwrap();
     core.config = IntifaceConfiguration::load_from_string(&json_str).unwrap();
@@ -80,6 +89,14 @@ impl epi::App for TemplateApp {
       });
     });
 
+    /*
+    egui::TopBottomPanel::bottom("bottom_panel").resizable(true).default_height(40.0).show(ctx, |ui| {
+      // The top panel is often a good place for a menu bar:
+      egui::ScrollArea::auto_sized().show_viewport(ui, |ui, r| {
+        ui.add(LogPanel);
+      });
+    });
+    */  
     egui::SidePanel::left("side_panel").show(ctx, |ui| {
       ui.heading("Intiface Desktop v41");
 
@@ -87,6 +104,7 @@ impl epi::App for TemplateApp {
         ui.selectable_value(current_screen, AppScreens::ServerStatus, "Server Status");
         ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
         ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
+        ui.selectable_value(current_screen, AppScreens::Log, "Log");
         ui.selectable_value(current_screen, AppScreens::Help, "Help");
         ui.selectable_value(current_screen, AppScreens::About, "About");
       });
@@ -98,14 +116,11 @@ impl epi::App for TemplateApp {
       // The central panel the region left after adding TopPanel's and SidePanel's
 
       egui::ScrollArea::auto_sized().show_viewport(ui, |ui, r| match current_screen {
-        AppScreens::ServerStatus => {
-          let mut status = ServerStatusPanel::default();
-          status.update(core, ui);
-        }
-        AppScreens::Settings => {
-          let mut settings = SettingsPanel::default();
-          settings.update(core, ui);
-        }
+        AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
+        AppScreens::Settings => SettingsPanel::default().update(core, ui),
+        AppScreens::Log => {
+          ui.add(LogPanel);
+        },
         _ => {}
       });
     });

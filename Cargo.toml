@@ -14,16 +14,24 @@ name = "intiface-desktop"
 path = "src/main.rs"
 
 [dependencies]
+buttplug = {version = "5.0.1", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"]}
+chrono = "0.4.19"
 dirs = "4.0.0"
 eframe = "0.14.0"
+futures = "0.3.17"
 getset = "0.1.1"
+hashbrown = "0.11.2"
+indexmap = "1.7.0"
 octocrab = "0.12.0"
+once_cell = "1.8.0"
+parking_lot = "0.11.2"
 reqwest = "0.11.4"
 
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
+smartstring = "0.2.9"
 thiserror = "1.0.29"
-tokio = { version = "1.12.0", features = ["rt-multi-thread", "sync", "macros", "process"] }
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "sync", "macros", "process", "fs"] }
 tracing = "0.1.28"
 tracing-subscriber = "0.2.24"
 
