@@ -1,8 +1,7 @@
-
+use crate::core::{load_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
-use crate::core::IntifaceConfiguration;
 
-use super::panels::SettingsPanel;
+use super::panels::{ServerStatusPanel, SettingsPanel};
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
@@ -11,26 +10,24 @@ enum AppScreens {
   Settings,
   Help,
   About,
-  IntifaceConfiguration,
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
-  // Example stuff:
-  label: String,
   current_screen: AppScreens,
-  config: IntifaceConfiguration,
+  core: AppCore,
 }
 
 impl Default for TemplateApp {
   fn default() -> Self {
+    let mut core = AppCore::default();
+    let json_str = load_config_file().unwrap();
+    core.config = IntifaceConfiguration::load_from_string(&json_str).unwrap();
     Self {
-      // Example stuff:
-      label: "Hello World!".to_owned(),
       current_screen: AppScreens::ServerStatus,
-      config: IntifaceConfiguration::default()
+      core,
     }
   }
 }
@@ -63,9 +60,8 @@ impl epi::App for TemplateApp {
   /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::CtxRef, frame: &mut epi::Frame<'_>) {
     let Self {
-      label,
       current_screen,
-      config
+      core,
     } = self;
 
     // Examples of how to create different panels and windows.
@@ -93,48 +89,25 @@ impl epi::App for TemplateApp {
         ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
         ui.selectable_value(current_screen, AppScreens::Help, "Help");
         ui.selectable_value(current_screen, AppScreens::About, "About");
-      })
-
-      /*
-      ui.horizontal(|ui| {
-          ui.label("Write something: ");
-          ui.text_edit_singleline(label);
       });
 
-      ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-      if ui.button("Increment").clicked() {
-          *value += 1.0;
-      }
-
-      ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-          ui.add(
-              egui::Hyperlink::new("https://github.com/emilk/egui/").text("powered by egui"),
-          );
-      });
-      */
+      egui::warn_if_debug_build(ui);
     });
 
     egui::CentralPanel::default().show(ctx, |ui| {
       // The central panel the region left after adding TopPanel's and SidePanel's
 
-      match current_screen {
+      egui::ScrollArea::auto_sized().show_viewport(ui, |ui, r| match current_screen {
+        AppScreens::ServerStatus => {
+          let mut status = ServerStatusPanel::default();
+          status.update(core, ui);
+        }
         AppScreens::Settings => {
-          let mut status = SettingsPanel::default();
-          status.update(config, ui);
+          let mut settings = SettingsPanel::default();
+          settings.update(core, ui);
         }
         _ => {}
-      }
-
-      /*
-      ui.heading("egui template TESTING");
-      ui.hyperlink("https://github.com/emilk/egui_template");
-      ui.add(egui::github_link_file!(
-        "https://github.com/emilk/egui_template/blob/master/",
-        "Source code."
-      ));
-      ui.label("testing 1 2 3");
-      egui::warn_if_debug_build(ui);
-      */
+      });
     });
   }
 }

@@ -7,7 +7,9 @@ extern crate tracing;
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
-fn main() {
+#[tokio::main]
+async fn main() {
+  tracing_subscriber::fmt::init();
   info!("Starting application");
   let app = intiface_desktop_egui::TemplateApp::default();
   let native_options = eframe::NativeOptions::default();

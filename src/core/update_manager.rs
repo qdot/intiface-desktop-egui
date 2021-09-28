@@ -20,61 +20,65 @@ pub enum UpdateError {
   InvalidData(String),
 }
 
-pub async fn check_for_device_file_update(
-  config: &IntifaceConfiguration,
-) -> Result<bool, UpdateError> {
-  let version = reqwest::get(DEVICE_CONFIG_VERSION_URL)
-    .await
-    .map_err(|e| {
-      UpdateError::ConnectionError(DEVICE_CONFIG_VERSION_URL.to_string(), e.to_string())
-    })?
-    .text()
-    .await
-    .map_err(|e| UpdateError::InvalidData(e.to_string()))?
-    .parse::<u32>()
-    .map_err(|e| UpdateError::InvalidData(e.to_string()))?;
-  Ok(version > *config.current_device_file_version())
-}
+#[derive(Default)]
+pub struct UpdateManager {}
 
-pub async fn check_for_application_update(
-  config: &IntifaceConfiguration,
-) -> Result<bool, UpdateError> {
-  let release = octocrab::instance()
-    .repos(INTIFACE_REPO_OWNER, INTIFACE_DESKTOP_REPO)
-    .releases()
-    .get_latest()
-    .await
-    .map_err(|e| UpdateError::GithubError(e.to_string()))?;
-  // TODO: Implement version update check
-  //Ok(release.tag_name != (*self.config.read().await).current_application_tag)
-  unimplemented!("Need to implement version update check.")
-}
+impl UpdateManager {
+  pub async fn check_for_device_file_update(
+    &self,
+    config: &IntifaceConfiguration,
+  ) -> Result<bool, UpdateError> {
+    let version = reqwest::get(DEVICE_CONFIG_VERSION_URL)
+      .await
+      .map_err(|e| {
+        UpdateError::ConnectionError(DEVICE_CONFIG_VERSION_URL.to_string(), e.to_string())
+      })?
+      .text()
+      .await
+      .map_err(|e| UpdateError::InvalidData(e.to_string()))?
+      .parse::<u32>()
+      .map_err(|e| UpdateError::InvalidData(e.to_string()))?;
+    Ok(version > config.current_device_file_version())
+  }
 
-pub async fn check_for_engine_update(config: &IntifaceConfiguration) -> Result<bool, UpdateError> {
-  let release = octocrab::instance()
-    .repos(INTIFACE_REPO_OWNER, INTIFACE_ENGINE_REPO)
-    .releases()
-    .get_latest()
-    .await
-    .map_err(|e| UpdateError::GithubError(e.to_string()))?;
-  Ok(release.tag_name != *config.current_engine_version())
-}
+  pub async fn check_for_application_update(
+    &self,
+    config: &IntifaceConfiguration,
+  ) -> Result<bool, UpdateError> {
+    let release = octocrab::instance()
+      .repos(INTIFACE_REPO_OWNER, INTIFACE_DESKTOP_REPO)
+      .releases()
+      .get_latest()
+      .await
+      .map_err(|e| UpdateError::GithubError(e.to_string()))?;
+    // TODO: Implement version update check
+    //Ok(release.tag_name != (*self.config.read().await).current_application_tag)
+    unimplemented!("Need to implement version update check.")
+  }
 
-pub async fn download_device_file_update(config: &IntifaceConfiguration) {
-}
+  pub async fn check_for_engine_update(
+    &self,
+    config: &IntifaceConfiguration,
+  ) -> Result<bool, UpdateError> {
+    let release = octocrab::instance()
+      .repos(INTIFACE_REPO_OWNER, INTIFACE_ENGINE_REPO)
+      .releases()
+      .get_latest()
+      .await
+      .map_err(|e| UpdateError::GithubError(e.to_string()))?;
+    Ok(release.tag_name != *config.current_engine_version())
+  }
 
-pub async fn download_application_update(config: &IntifaceConfiguration) {
-}
+  pub async fn download_device_file_update(&self, config: &IntifaceConfiguration) {}
 
-pub async fn download_engine_update(config: &IntifaceConfiguration) {
-}
+  pub async fn download_application_update(&self, config: &IntifaceConfiguration) {}
 
-pub async fn install_engine(config: &IntifaceConfiguration) {
-}
+  pub async fn download_engine_update(&self, config: &IntifaceConfiguration) {}
 
-pub async fn install_application(config: &IntifaceConfiguration) {
-}
+  pub async fn install_engine(&self, config: &IntifaceConfiguration) {}
 
+  pub async fn install_application(&self, config: &IntifaceConfiguration) {}
+}
 #[cfg(test)]
 mod test {
   use super::super::IntifaceConfiguration;
@@ -88,8 +92,9 @@ mod test {
     // Execute the future, blocking the current thread until completion
     rt.block_on(async move {
       let config = IntifaceConfiguration::default();
+      let manager = UpdateManager::default();
       // Should always return true.
-      assert!(check_for_device_file_update(&config).await.unwrap());
+      assert!(manager.check_for_device_file_update(&config).await.unwrap());
     })
   }
 
@@ -101,8 +106,9 @@ mod test {
     // Execute the future, blocking the current thread until completion
     rt.block_on(async move {
       let config = IntifaceConfiguration::default();
+      let manager = UpdateManager::default();
       // Should always return true.
-      assert!(check_for_engine_update(&config).await.unwrap());
+      assert!(manager.check_for_engine_update(&config).await.unwrap());
     })
   }
 }
