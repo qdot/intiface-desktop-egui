@@ -3,10 +3,9 @@ use std::sync::{
   atomic::{AtomicBool, Ordering},
   Arc,
 };
-use std::{fs::File, io::copy};
+use std::{fs::File, io::{self,copy}};
 use thiserror::Error;
 use tracing::{error, info};
-
 use super::{util, IntifaceConfiguration};
 
 const BUTTPLUG_REPO_OWNER: &str = "buttplugio";
@@ -33,22 +32,27 @@ pub struct UpdateManager {
   needs_engine_update: Arc<AtomicBool>,
   needs_application_update: Arc<AtomicBool>,
   is_updating: Arc<AtomicBool>,
-  has_errors: Arc<AtomicBool>
+  has_errors: Arc<AtomicBool>,
 }
 
 impl UpdateManager {
   pub fn check_for_updates(&self, config: &IntifaceConfiguration) {
     let is_updating = self.is_updating.clone();
     let needs_device_file_update = self.needs_device_file_update.clone();
+    let needs_engine_update = self.needs_engine_update.clone();
+    let engine_version = config.current_engine_version().clone();
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
-      tokio::join!((async move { UpdateManager::check_for_device_file_update(&needs_device_file_update).await }));
+      tokio::join!(
+          async move { UpdateManager::check_for_device_file_update(&needs_device_file_update).await },
+          async move { UpdateManager::check_for_engine_update(&engine_version, needs_engine_update).await }
+      );
       is_updating.store(false, Ordering::SeqCst);
     });
   }
 
   pub fn get_updates(&self) {
-    let mut fut = vec!();
+    let mut fut = vec![];
     if self.needs_device_file_update.load(Ordering::SeqCst) {
       fut.push(UpdateManager::download_device_file_update());
     }
@@ -56,14 +60,14 @@ impl UpdateManager {
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
       tokio::join!(futures::future::join_all(fut));
-      is_updating.store(false, Ordering::SeqCst);      
+      is_updating.store(false, Ordering::SeqCst);
     });
   }
 
   pub fn needs_updates(&self) -> bool {
-    self.needs_application_update.load(Ordering::SeqCst) ||
-    self.needs_device_file_update.load(Ordering::SeqCst) ||
-    self.needs_engine_update.load(Ordering::SeqCst)
+    self.needs_application_update.load(Ordering::SeqCst)
+      || self.needs_device_file_update.load(Ordering::SeqCst)
+      || self.needs_engine_update.load(Ordering::SeqCst)
   }
 
   pub fn is_updating(&self) -> bool {
@@ -106,8 +110,8 @@ impl UpdateManager {
       //.map_err(|e| UpdateError::InvalidData(e.to_string()))?
       .parse::<u32>()
       .unwrap();
-      //.map_err(|e| UpdateError::InvalidData(e.to_string()))?;
-      needs_update.store(version > device_config.version, Ordering::SeqCst);
+    //.map_err(|e| UpdateError::InvalidData(e.to_string()))?;
+    needs_update.store(version > device_config.version, Ordering::SeqCst);
   }
 
   async fn check_for_application_update(
@@ -126,8 +130,8 @@ impl UpdateManager {
   }
 
   async fn check_for_engine_update(
-    &self,
-    config: &IntifaceConfiguration,
+    engine_version: &str,
+    needs_engine_update: Arc<AtomicBool>
   ) -> Result<bool, UpdateError> {
     let release = octocrab::instance()
       .repos(INTIFACE_REPO_OWNER, INTIFACE_ENGINE_REPO)
@@ -135,7 +139,8 @@ impl UpdateManager {
       .get_latest()
       .await
       .map_err(|e| UpdateError::GithubError(e.to_string()))?;
-    Ok(release.tag_name != *config.current_engine_version())
+    UpdateManager::download_engine_update(release.assets).await;
+    Ok(release.tag_name != engine_version)
   }
 
   pub async fn download_device_file_update() {
@@ -148,9 +153,41 @@ impl UpdateManager {
 
   pub async fn download_application_update(&self, config: &IntifaceConfiguration) {}
 
-  pub async fn download_engine_update(&self, config: &IntifaceConfiguration) {}
+  async fn download_engine_update(assets: Vec<octocrab::models::repos::Asset>) {
+    #[cfg(target_os = "windows")]
+    let platform = "win-x64";
+    #[cfg(target_os = "linux")]
+    let platform = "linux-x64";
+    #[cfg(target_os = "darwin")]
+    let platform = "macos-x64";
 
-  pub async fn install_engine(&self, config: &IntifaceConfiguration) {}
+    let release_name = format!("intiface-cli-rs-{}-Release.zip", platform);
+
+    for asset in assets {
+      if asset.name.starts_with(&release_name) {
+        info!("Found release asset {}", asset.name);
+        info!("Getting {}", asset.browser_download_url);
+        let file_bytes = reqwest::get(asset.browser_download_url).await.unwrap().bytes().await.unwrap();
+        let reader = std::io::Cursor::new(&file_bytes);
+        let mut files = zip::ZipArchive::new(reader).unwrap();
+        for file_idx in 0..files.len() {
+          let mut file = files.by_index(file_idx).unwrap();
+          if file.enclosed_name().is_none() {
+            continue;
+          };
+          let extension = file.enclosed_name().unwrap().extension();
+          if extension.is_some() && extension.unwrap() == "md" {
+            info!("Skipping extracting file {} from zip...", file.enclosed_name().unwrap().display());
+            continue;
+          }
+          info!("Extracting file {} from zip...", file.enclosed_name().unwrap().display());
+          let final_out_path = util::engine_file_path();
+          let mut outfile = File::create(&final_out_path).unwrap();
+          io::copy(&mut file, &mut outfile).unwrap();
+        }
+      }
+    }
+  }
 
   pub async fn install_application(&self, config: &IntifaceConfiguration) {}
 }
@@ -185,7 +222,7 @@ mod test {
       let config = IntifaceConfiguration::default();
       let manager = UpdateManager::default();
       // Should always return true.
-      assert!(manager.check_for_engine_update(&config).await.unwrap());
+      //assert!(manager.check_for_engine_update(&config).await.unwrap());
     })
   }
 }

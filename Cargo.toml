@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 buttplug = {version = "5.0.1", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"]}
+bytes = "1.0.1"
 chrono = "0.4.19"
 dirs = "4.0.0"
 eframe = "0.14.0"
@@ -34,6 +35,7 @@ thiserror = "1.0.29"
 tokio = { version = "1.12.0", features = ["rt-multi-thread", "sync", "macros", "process", "fs"] }
 tracing = "0.1.28"
 tracing-subscriber = "0.2.24"
+zip = "0.5.13"
 
 [features]
 default = []
