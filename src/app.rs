@@ -1,6 +1,6 @@
 use crate::core::{load_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
-use tracing_subscriber::{Layer, Registry};
+use tracing_subscriber::{Layer, Registry, EnvFilter};
 use tracing::info;
 use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel};
 
@@ -26,11 +26,17 @@ impl Default for TemplateApp {
   fn default() -> Self {
     let fmt_sub = tracing_subscriber::fmt::Layer::default();
 
+    let filter = EnvFilter::try_from_default_env()
+    .or_else(|_| EnvFilter::try_new("info"))
+    .unwrap();
+
     let subscriber = fmt_sub
+      .and_then(filter)
       .and_then(super::panels::layer())
       .with_subscriber(Registry::default());
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
+    info!("Setting up application");
     let mut core = AppCore::default();
     let json_str = load_config_file().unwrap();
     core.config = IntifaceConfiguration::load_from_string(&json_str).unwrap();
