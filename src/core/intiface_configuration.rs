@@ -1,5 +1,11 @@
+use std::str::FromStr;
+
 use getset::{Getters, Setters, MutGetters, CopyGetters};
 use serde::{Deserialize, Serialize};
+
+fn default_tracing_level() -> String {
+  tracing::Level::INFO.to_string()
+}
 
 #[derive(Setters, MutGetters, Getters, CopyGetters, Serialize, Deserialize, PartialEq, Clone)]
 #[getset(get_mut = "pub", set = "pub")]
@@ -19,8 +25,7 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(rename="websocketServerInsecurePort", default)]
   websocket_server_insecure_port: u16,
-  #[getset(get = "pub")]
-  #[serde(rename="serverLogLevel", default)]
+  #[serde(rename="serverLogLevel", default = "default_tracing_level")]
   server_log_level: String,
   #[getset(get_copy = "pub")]
   #[serde(rename="usePrereleaseEngine", default)]
@@ -83,7 +88,7 @@ impl Default for IntifaceConfiguration {
       use_websocket_server_insecure: true,
       websocket_server_all_interfaces: false,
       websocket_server_insecure_port: 12345,
-      server_log_level: "info".to_owned(),
+      server_log_level: tracing::Level::INFO.to_string(),
       use_prerelease_engine: false,
       current_engine_version: "0".to_owned(),
       current_device_file_version: 0,
@@ -106,6 +111,10 @@ impl Default for IntifaceConfiguration {
 }
 
 impl IntifaceConfiguration {
+  pub fn server_log_level(&self) -> tracing::Level {
+    tracing::Level::from_str(&self.server_log_level).unwrap()
+  }
+
   pub fn load_from_string(json_config: &str) -> Result<IntifaceConfiguration, serde_json::Error> {
     serde_json::from_str::<IntifaceConfiguration>(json_config)
   }

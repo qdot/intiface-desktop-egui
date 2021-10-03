@@ -50,6 +50,7 @@ impl SettingsPanel {
           ui.checkbox(core.config.with_serial_port_mut(), "Serial Ports");
         });
       });
+
       ui.collapsing("Server Process Settings", |ui| {
         ui.horizontal(|ui| {
           ui.checkbox(
@@ -60,6 +61,14 @@ impl SettingsPanel {
         ui.horizontal(|ui| {
           ui.label("Server Name");
           ui.text_edit_singleline(core.config.server_name_mut());
+        });
+        ui.horizontal(|ui| {
+          ui.label("Server Log Level");
+          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::ERROR.to_string(), "Error");
+          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::WARN.to_string(), "Warn");
+          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::INFO.to_string(), "Info");
+          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::DEBUG.to_string(), "Debug");
+          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::TRACE.to_string(), "Trace");
         });
       });
       ui.collapsing("Server Websocket Settings", |ui| {

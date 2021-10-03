@@ -3,6 +3,7 @@ mod process_manager;
 mod update_manager;
 mod util;
 mod file_storage;
+mod process_messages;
 
 pub use intiface_configuration::IntifaceConfiguration;
 pub use process_manager::ProcessManager;

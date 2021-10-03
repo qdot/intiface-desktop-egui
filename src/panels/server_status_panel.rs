@@ -15,7 +15,7 @@ impl ServerStatusPanel {
       };
       if server_button.clicked() {
         if core.process_manager.is_running() {
-          
+          core.process_manager.stop();
         } else {
           core.process_manager.run(&core.config);
         }
