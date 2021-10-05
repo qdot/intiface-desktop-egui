@@ -11,7 +11,7 @@ use thiserror::Error;
 use tokio::net::unix::{UnixListener, UnixStream};
 #[cfg(target_os = "windows")]
 use tokio::net::windows::named_pipe;
-use tokio::{select, process::Command, sync::{broadcast, mpsc}, io::Interest};
+use tokio::{select, process::Command, sync::mpsc, io::Interest};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn, error};
 use rand::{thread_rng, Rng, distributions::Alphanumeric};
@@ -19,7 +19,6 @@ use dashmap::{DashMap, DashSet};
 
 pub struct ProcessManager {
   process_running: Arc<AtomicBool>,
-  process_events: Arc<broadcast::Sender<EngineMessage>>,
   process_stop_sender: Option<mpsc::Sender<()>>,
   client_name: Arc<DashSet<String>>,
   client_devices: Arc<DashMap<u32, String>>
@@ -27,10 +26,8 @@ pub struct ProcessManager {
 
 impl Default for ProcessManager {
   fn default() -> Self {
-    let (process_events, _) = broadcast::channel(256);
     Self {
       process_running: Arc::new(AtomicBool::new(false)),
-      process_events: Arc::new(process_events),
       process_stop_sender: None,
       client_name: Arc::new(DashSet::new()),
       client_devices: Arc::new(DashMap::new())
@@ -51,7 +48,6 @@ fn translate_buffer(data: &mut Vec<u8>) -> Vec<EngineMessage> {
   while let Some(msg) = stream.next() {
     match msg {
       Ok(msg) => {
-        info!("{:?}", msg);
         messages.push(msg);
       },
       Err(e) => {
@@ -64,7 +60,7 @@ fn translate_buffer(data: &mut Vec<u8>) -> Vec<EngineMessage> {
   messages
 }
 
-async fn run_windows_named_pipe(pipe_name: &str, sender: Arc<broadcast::Sender<EngineMessage>>, mut stop_receiver: mpsc::Receiver<()>, process_ended_token: CancellationToken, client_name: Arc<DashSet<String>>, client_devices: Arc<DashMap<u32, String>>) {
+async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiver<()>, process_ended_token: CancellationToken, client_name: Arc<DashSet<String>>, client_devices: Arc<DashMap<u32, String>>) {
   info!("Starting named pipe server at {}", pipe_name);
   let server = named_pipe::ServerOptions::new()
     .first_pipe_instance(true)
@@ -84,6 +80,10 @@ async fn run_windows_named_pipe(pipe_name: &str, sender: Arc<broadcast::Sender<E
                   let msgs = translate_buffer(&mut data);
                   for msg in msgs {
                     match &msg {
+                      EngineMessage::EngineLog(msg) => {
+                        let log_msg: EngineLogMessage = serde_json::from_str(msg).unwrap();
+                        log_msg.log_event();
+                      }
                       EngineMessage::ClientConnected(name) => {
                         client_name.clear();
                         client_name.insert(name.clone());
@@ -99,7 +99,6 @@ async fn run_windows_named_pipe(pipe_name: &str, sender: Arc<broadcast::Sender<E
                       }
                       _ => {}
                     }
-                    let _ = sender.send(msg);
                   }
                 }
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -235,11 +234,10 @@ impl ProcessManager {
     let process_ended_token_child = process_ended_token.child_token();
     let (tx, rx) = mpsc::channel(1);
     self.process_stop_sender = Some(tx);
-    let sender = self.process_events.clone();
     let client_name = self.client_name.clone();
     let client_devices = self.client_devices.clone();
     tokio::spawn(async move {
-      run_windows_named_pipe(&pipe_name, sender, rx, process_ended_token_child, client_name, client_devices).await;
+      run_windows_named_pipe(&pipe_name,  rx, process_ended_token_child, client_name, client_devices).await;
     });
 
     match Command::new(command_path)
@@ -279,10 +277,6 @@ impl ProcessManager {
         error!("Tried stopping process multiple times, or process is no longer up.");
       }
     }
-  }
-
-  pub fn events(&self) -> broadcast::Receiver<EngineMessage> {
-    self.process_events.subscribe()
   }
 
   pub fn client_name(&self) -> Option<String> {
