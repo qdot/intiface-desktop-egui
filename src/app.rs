@@ -19,13 +19,13 @@ enum AppScreens {
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
+pub struct IntifaceDesktopApp {
   current_screen: AppScreens,
   core: AppCore,
   _logging_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
-impl Default for TemplateApp {
+impl Default for IntifaceDesktopApp {
   fn default() -> Self {
     let fmt_sub = tracing_subscriber::fmt::Layer::default();
 
@@ -74,9 +74,9 @@ impl Default for TemplateApp {
   }
 }
 
-impl epi::App for TemplateApp {
+impl epi::App for IntifaceDesktopApp {
   fn name(&self) -> &str {
-    "egui template"
+    "Intiface Desktop"
   }
 
   /// Called by the framework to load old app state (if any).

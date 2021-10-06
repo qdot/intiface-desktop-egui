@@ -10,7 +10,7 @@ extern crate tracing;
 #[tokio::main]
 async fn main() {
   info!("Starting application");
-  let app = intiface_desktop_egui::TemplateApp::default();
+  let app = intiface_desktop_egui::IntifaceDesktopApp::default();
   let native_options = eframe::NativeOptions::default();
   eframe::run_native(Box::new(app), native_options);
 }
