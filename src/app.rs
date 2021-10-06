@@ -3,6 +3,8 @@ use eframe::{egui, epi};
 use tracing_subscriber::{Layer, Registry, EnvFilter};
 use tracing::info;
 use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel};
+use time::OffsetDateTime;
+use std::time::SystemTime;
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
@@ -20,6 +22,7 @@ enum AppScreens {
 pub struct TemplateApp {
   current_screen: AppScreens,
   core: AppCore,
+  _logging_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
 impl Default for TemplateApp {
@@ -27,15 +30,38 @@ impl Default for TemplateApp {
     let fmt_sub = tracing_subscriber::fmt::Layer::default();
 
     let filter = EnvFilter::try_from_default_env()
-    .or_else(|_| EnvFilter::try_new("info"))
-    .unwrap();
+      .or_else(|_| EnvFilter::try_new("info"))
+      .unwrap();
 
+    let dt: OffsetDateTime = SystemTime::now().into();
+    let format_str = time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
+
+    let file_appender = tracing_appender::rolling::never(super::core::user_config_directory(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
+    //let (non_blocking, _logging_guard) = tracing_appender::non_blocking(file_appender);
+    let (non_blocking, _logging_guard) = tracing_appender::non_blocking(std::io::stdout());
+    
     let subscriber = fmt_sub
+      //.json()
+      .with_writer(non_blocking)
       .and_then(filter)
       .and_then(super::panels::layer())
       .with_subscriber(Registry::default());
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
+
+    let paths = std::fs::read_dir(super::core::user_config_directory()).unwrap();
+    let mut logs = vec!();
+    for path in paths {
+      let p = path.unwrap();
+      if p.file_name().into_string().unwrap().contains(".log") {
+        logs.push(p.path());
+      }
+    }
+    while logs.len() > 10 {
+      let log_file = logs.remove(0);
+      std::fs::remove_file(log_file).unwrap();
+    }
+
     info!("Setting up application");
     let mut core = AppCore::default();
     let json_str = load_config_file().unwrap();
@@ -43,6 +69,7 @@ impl Default for TemplateApp {
     Self {
       current_screen: AppScreens::ServerStatus,
       core,
+      _logging_guard
     }
   }
 }
@@ -77,6 +104,7 @@ impl epi::App for TemplateApp {
     let Self {
       current_screen,
       core,
+      _logging_guard: _,
     } = self;
 
     // Examples of how to create different panels and windows.
