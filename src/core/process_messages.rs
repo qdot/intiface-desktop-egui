@@ -12,7 +12,7 @@ pub enum EngineMessage {
   EngineStopped,
   ClientConnected(String),
   ClientDisconnected,
-  DeviceConnected(String, u32),
+  DeviceConnected(String, u32, String),
   DeviceDisconnected(u32),
   ClientRejected(String)
 }

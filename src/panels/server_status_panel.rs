@@ -30,7 +30,7 @@ impl ServerStatusPanel {
         if !devices.is_empty() {
           ui.label("Devices Connected:");
           for device in devices {
-            ui.label(format!("- {}", device));
+            ui.label(format!("- {} {}", device.name, device.address));
           }
         } else {
           ui.label("No devices connected.");

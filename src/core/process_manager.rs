@@ -17,11 +17,26 @@ use tracing::{info, warn, error};
 use rand::{thread_rng, Rng, distributions::Alphanumeric};
 use dashmap::{DashMap, DashSet};
 
+#[derive(Clone, Debug)]
+pub struct ButtplugServerDevice {
+  pub name: String,
+  pub address: String
+}
+
+impl ButtplugServerDevice {
+  pub fn new(name: &str, address: &str) -> Self {
+    Self {
+      name: name.to_owned(),
+      address: address.to_owned()
+    }
+  }
+}
+
 pub struct ProcessManager {
   process_running: Arc<AtomicBool>,
   process_stop_sender: Option<mpsc::Sender<()>>,
   client_name: Arc<DashSet<String>>,
-  client_devices: Arc<DashMap<u32, String>>
+  client_devices: Arc<DashMap<u32, ButtplugServerDevice>>
 }
 
 impl Default for ProcessManager {
@@ -60,7 +75,7 @@ fn translate_buffer(data: &mut Vec<u8>) -> Vec<EngineMessage> {
   messages
 }
 
-async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiver<()>, process_ended_token: CancellationToken, client_name: Arc<DashSet<String>>, client_devices: Arc<DashMap<u32, String>>) {
+async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiver<()>, process_ended_token: CancellationToken, client_name: Arc<DashSet<String>>, client_devices: Arc<DashMap<u32, ButtplugServerDevice>>) {
   info!("Starting named pipe server at {}", pipe_name);
   let server = named_pipe::ServerOptions::new()
     .first_pipe_instance(true)
@@ -91,8 +106,8 @@ async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiv
                       EngineMessage::ClientDisconnected => {
                         client_name.clear();
                       }
-                      EngineMessage::DeviceConnected(name, index) => {
-                        client_devices.insert(*index, name.clone());
+                      EngineMessage::DeviceConnected(name, index, address) => {
+                        client_devices.insert(*index, ButtplugServerDevice::new(&name, &address));
                       }
                       EngineMessage::DeviceDisconnected(index) => {
                         client_devices.remove(index);
@@ -291,7 +306,7 @@ impl ProcessManager {
     }
   }
 
-  pub fn client_devices(&self) -> Vec<String> {
+  pub fn client_devices(&self) -> Vec<ButtplugServerDevice> {
     self.client_devices.iter().map(|val| val.value().clone()).collect()
   }
 }
