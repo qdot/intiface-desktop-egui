@@ -14,37 +14,36 @@ name = "intiface-desktop"
 path = "src/main.rs"
 
 [dependencies]
-buttplug = {version = "5.0.1", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"]}
-bytes = "1.0.1"
+buttplug = { version = "5.0.1", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"] }
+bytes = "1.1.0"
 chrono = "0.4.19"
 dashmap = "4.0.2"
 dirs = "4.0.0"
-eframe = "0.14.0"
+eframe = "0.15.0"
 futures = "0.3.17"
 getset = "0.1.1"
 hashbrown = "0.11.2"
 indexmap = "1.7.0"
-octocrab = "0.12.0"
+octocrab = "0.13.0"
 once_cell = "1.8.0"
 parking_lot = "0.11.2"
 rand = "0.8.4"
-reqwest = "0.11.4"
+reqwest = "0.11.6"
 serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
+serde_json = "1.0.71"
 smartstring = "0.2.9"
-thiserror = "1.0.29"
-time = {version = "0.3.3", features = ["std", "formatting"] }
-tokio = { version = "1.12.0", features = ["rt-multi-thread", "sync", "macros", "process", "fs", "net"] }
-tokio-util = "0.6.8"
-tracing = "0.1.28"
-tracing-appender = "0.1.2"
+thiserror = "1.0.30"
+time = { version = "0.3.5", features = ["std", "formatting"] }
+tokio = { version = "1.14.0", features = ["rt-multi-thread", "sync", "macros", "process", "fs", "net"] }
+tokio-util = "0.6.9"
+tracing = "0.1.29"
+tracing-appender = "0.2.0"
 tracing-futures = "0.2.5"
-tracing-subscriber = "0.2.24"
+tracing-subscriber = { version = "0.3.1", features = ["env-filter"]}
 zip = "0.5.13"
 
 [features]
 default = []
-http = ["eframe/http"] # Enable if you want to do http requests
 persistence = ["eframe/persistence"] # Enable if you want to persist app state on shutdown
 
 [profile.release]
