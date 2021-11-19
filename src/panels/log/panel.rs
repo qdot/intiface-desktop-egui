@@ -37,27 +37,24 @@ impl egui::Widget for LogPanel {
             .get_or_default::<LogPanelState>(id)
             .clone();
 
-        let mut response = ui
-            .centered_and_justified(|ui| {
-                ui.horizontal(|ui| {
-                    if Level::TRACE < STATIC_MAX_LEVEL {
-                        ui.checkbox(&mut state.trace, "trace");
-                    }
-                    if Level::DEBUG < STATIC_MAX_LEVEL {
-                        ui.checkbox(&mut state.debug, "debug");
-                    }
-                    if Level::INFO < STATIC_MAX_LEVEL {
-                        ui.checkbox(&mut state.info, "info");
-                    }
-                    if Level::WARN < STATIC_MAX_LEVEL {
-                        ui.checkbox(&mut state.warn, "warn");
-                    }
-                    if Level::ERROR < STATIC_MAX_LEVEL {
-                        ui.checkbox(&mut state.error, "error");
-                    }
-                });
-            })
-            .response;
+        let mut response =
+            ui.horizontal(|ui| {
+                if Level::TRACE < STATIC_MAX_LEVEL {
+                    ui.checkbox(&mut state.trace, "trace");
+                }
+                if Level::DEBUG < STATIC_MAX_LEVEL {
+                    ui.checkbox(&mut state.debug, "debug");
+                }
+                if Level::INFO < STATIC_MAX_LEVEL {
+                    ui.checkbox(&mut state.info, "info");
+                }
+                if Level::WARN < STATIC_MAX_LEVEL {
+                    ui.checkbox(&mut state.warn, "warn");
+                }
+                if Level::ERROR < STATIC_MAX_LEVEL {
+                    ui.checkbox(&mut state.error, "error");
+                }
+            }).response;
 
         let log_entries = LOG_ENTRIES.lock();
         for (log_ix, log) in log_entries.iter().enumerate().rev() {
