@@ -20,13 +20,15 @@ use dashmap::{DashMap, DashSet};
 #[derive(Clone, Debug)]
 pub struct ButtplugServerDevice {
   pub name: String,
+  pub display_name: Option<String>,
   pub address: String
 }
 
 impl ButtplugServerDevice {
-  pub fn new(name: &str, address: &str) -> Self {
+  pub fn new(name: &str, display_name: Option<String>, address: &str) -> Self {
     Self {
       name: name.to_owned(),
+      display_name,
       address: address.to_owned()
     }
   }
@@ -106,8 +108,13 @@ async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiv
                       EngineMessage::ClientDisconnected => {
                         client_name.clear();
                       }
-                      EngineMessage::DeviceConnected(name, index, address) => {
-                        client_devices.insert(*index, ButtplugServerDevice::new(&name, &address));
+                      EngineMessage::DeviceConnected { name, index, address, display_name } => {
+                        let display_name = if display_name.is_empty() {
+                          None
+                        } else {
+                          Some(display_name.clone())
+                        };
+                        client_devices.insert(*index, ButtplugServerDevice::new(&name, display_name, &address));
                       }
                       EngineMessage::DeviceDisconnected(index) => {
                         client_devices.remove(index);
