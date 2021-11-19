@@ -28,7 +28,7 @@ impl<S> Layer<S> for EguiLayer
 where
     S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 {
-    fn new_span(&self, fields: &span::Attributes<'_>, id: &span::Id, ctx: layer::Context<'_, S>) {
+    fn on_new_span(&self, fields: &span::Attributes<'_>, id: &span::Id, ctx: layer::Context<'_, S>) {
         let meta = ctx.metadata(id);
         let span = ctx.span(id).expect("ctx span");
         let mut ext = span.extensions_mut();
