@@ -61,7 +61,7 @@ impl LogSpan {
 
     pub fn show_fields(&self, ui: &mut egui::Ui) {
         for (field, value) in &self.fields {
-            ui.add(egui::Label::new(format_args!("{}: {}", field, value)).monospace());
+            ui.add(egui::Label::new(&format!("{}: {}", field, value)));
         }
     }
 }
@@ -77,7 +77,7 @@ impl LogEvent {
 
     pub fn show_fields(&self, ui: &mut egui::Ui) {
         for (field, value) in &self.fields {
-            ui.add(egui::Label::new(format_args!("{}: {}", field, value)).monospace());
+            ui.add(egui::Label::new(format!("{}: {}", field, value)));
         }
     }
 }

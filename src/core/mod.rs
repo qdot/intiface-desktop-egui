@@ -4,6 +4,7 @@ mod update_manager;
 mod util;
 mod file_storage;
 mod process_messages;
+mod device_config_manager;
 
 pub use intiface_configuration::IntifaceConfiguration;
 pub use process_manager::ProcessManager;

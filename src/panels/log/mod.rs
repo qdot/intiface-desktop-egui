@@ -21,7 +21,7 @@ pub fn show(ctx: &egui::CtxRef, open: &mut bool) -> Option<egui::Response> {
     let window = egui::Window::new("Log")
         .resizable(true)
         .collapsible(true)
-        .scroll(true)
+        .vscroll(true)
         .open(open);
     show_in(ctx, window)
 }

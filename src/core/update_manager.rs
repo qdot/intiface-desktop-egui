@@ -10,7 +10,7 @@ use super::{util, IntifaceConfiguration};
 
 const BUTTPLUG_REPO_OWNER: &str = "buttplugio";
 const INTIFACE_REPO_OWNER: &str = "intiface";
-const INTIFACE_DESKTOP_REPO: &str = "intiface-desktop";
+const INTIFACE_DESKTOP_REPO: &str = "intiface-desktop-egui";
 const INTIFACE_ENGINE_REPO: &str = "intiface-cli-rs";
 const PRERELEASE_TAG: &str = "420.69.666";
 const DEVICE_CONFIG_VERSION_URL: &str = "https://buttplug-rs-device-config.buttplug.io/version";

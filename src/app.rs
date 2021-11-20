@@ -36,7 +36,7 @@ impl Default for IntifaceDesktopApp {
     let dt: OffsetDateTime = SystemTime::now().into();
     let format_str = time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
 
-    let file_appender = tracing_appender::rolling::never(super::core::user_config_directory(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
+    let _file_appender = tracing_appender::rolling::never(super::core::user_config_directory(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
     //let (non_blocking, _logging_guard) = tracing_appender::non_blocking(file_appender);
     let (non_blocking, _logging_guard) = tracing_appender::non_blocking(std::io::stdout());
     
@@ -115,7 +115,7 @@ impl epi::App for IntifaceDesktopApp {
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
       // The top panel is often a good place for a menu bar:
       egui::menu::bar(ui, |ui| {
-        egui::menu::menu(ui, "File", |ui| {
+        egui::menu::menu_button(ui, "File", |ui| {
           if ui.button("Quit").clicked() {
             frame.quit();
           }
@@ -149,7 +149,7 @@ impl epi::App for IntifaceDesktopApp {
     egui::CentralPanel::default().show(ctx, |ui| {
       // The central panel the region left after adding TopPanel's and SidePanel's
 
-      egui::ScrollArea::auto_sized().show_viewport(ui, |ui, r| match current_screen {
+      egui::ScrollArea::vertical().show_viewport(ui, |ui, r| match current_screen {
         AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
         AppScreens::Settings => SettingsPanel::default().update(core, ui),
         AppScreens::Log => {
