@@ -2,7 +2,7 @@
 
 use super::archive::LOG_ENTRIES;
 use tracing::{level_filters::STATIC_MAX_LEVEL, Level};
-use eframe::egui;
+use eframe::egui::{self, RichText, Color32};
 
 #[derive(Debug)]
 pub struct LogPanel;
@@ -70,12 +70,19 @@ impl egui::Widget for LogPanel {
 
             let log_id = id.with(log_ix);
             let r = match log.fields.get("message") {
-                Some(message) => egui::CollapsingHeader::new(format!(
+                Some(message) => egui::CollapsingHeader::new(RichText::new(format!(
                     "[{}] [{}] {}",
                     log.timestamp.format("%H:%M:%S%.3f"),
                     log.meta.level(),
                     message,
-                )),
+                )).color(
+                    match *log.meta.level() {
+                        Level::DEBUG => Color32::BLUE,
+                        Level::ERROR => Color32::LIGHT_RED,
+                        Level::WARN => Color32::YELLOW,
+                        Level::INFO => Color32::GREEN,
+                        Level::TRACE => Color32::LIGHT_GRAY
+                    })),
                 None => egui::CollapsingHeader::new(format!(
                     "[{}] [{}]",
                     log.timestamp.format("%H:%M:%S%.3f"),
