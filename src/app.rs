@@ -2,7 +2,7 @@ use crate::core::{load_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
 use tracing_subscriber::{Layer, Registry, EnvFilter};
 use tracing::info;
-use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel};
+use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel, DevicesPanel};
 use time::OffsetDateTime;
 use std::time::SystemTime;
 
@@ -151,6 +151,7 @@ impl epi::App for IntifaceDesktopApp {
 
       egui::ScrollArea::vertical().show_viewport(ui, |ui, r| match current_screen {
         AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
+        AppScreens::Devices => DevicesPanel::default().update(core, ui),
         AppScreens::Settings => SettingsPanel::default().update(core, ui),
         AppScreens::Log => {
           ui.add(LogPanel);
