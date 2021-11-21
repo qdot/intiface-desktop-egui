@@ -1,5 +1,6 @@
-use crate::core::{load_config_file, AppCore, IntifaceConfiguration};
+use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{Layer, Registry, EnvFilter};
 use tracing::info;
 use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel, DevicesPanel};
@@ -25,43 +26,68 @@ pub struct IntifaceDesktopApp {
   _logging_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
+fn setup_logging() -> WorkerGuard {
+  if !super::core::log_path().exists() {
+    // If we don't, create it and add default files.
+    std::fs::create_dir_all(super::core::log_path());
+  }
+  let fmt_sub = tracing_subscriber::fmt::Layer::default();
+
+  let filter = EnvFilter::try_from_default_env()
+    .or_else(|_| EnvFilter::try_new("info"))
+    .unwrap();
+
+  let dt: OffsetDateTime = SystemTime::now().into();
+  let format_str = time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
+
+  let file_appender = tracing_appender::rolling::never(super::core::log_path(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
+  let (non_blocking, logging_guard) = tracing_appender::non_blocking(file_appender);
+  //let (non_blocking, _logging_guard) = tracing_appender::non_blocking(std::io::stdout());
+  
+  let subscriber = fmt_sub
+    //.json()
+    .with_writer(non_blocking)
+    .and_then(filter)
+    .and_then(super::panels::layer())
+    .with_subscriber(Registry::default());
+
+  tracing::subscriber::set_global_default(subscriber).unwrap();
+
+  let paths = std::fs::read_dir(super::core::log_path()).unwrap();
+  let mut logs = vec!();
+  for path in paths {
+    let p = path.unwrap();
+    if p.file_name().into_string().unwrap().contains(".log") {
+      logs.push(p.path());
+    }
+  }
+  while logs.len() > 10 {
+    let log_file = logs.remove(0);
+    std::fs::remove_file(log_file).unwrap();
+  }
+ 
+  logging_guard
+}
+
 impl Default for IntifaceDesktopApp {
   fn default() -> Self {
-    let fmt_sub = tracing_subscriber::fmt::Layer::default();
-
-    let filter = EnvFilter::try_from_default_env()
-      .or_else(|_| EnvFilter::try_new("info"))
-      .unwrap();
-
-    let dt: OffsetDateTime = SystemTime::now().into();
-    let format_str = time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
-
-    let file_appender = tracing_appender::rolling::never(super::core::user_config_directory(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
-    let (non_blocking, _logging_guard) = tracing_appender::non_blocking(file_appender);
-    //let (non_blocking, _logging_guard) = tracing_appender::non_blocking(std::io::stdout());
-    
-    let subscriber = fmt_sub
-      //.json()
-      .with_writer(non_blocking)
-      .and_then(filter)
-      .and_then(super::panels::layer())
-      .with_subscriber(Registry::default());
-
-    tracing::subscriber::set_global_default(subscriber).unwrap();
-
-    let paths = std::fs::read_dir(super::core::user_config_directory()).unwrap();
-    let mut logs = vec!();
-    for path in paths {
-      let p = path.unwrap();
-      if p.file_name().into_string().unwrap().contains(".log") {
-        logs.push(p.path());
-      }
-    }
-    while logs.len() > 10 {
-      let log_file = logs.remove(0);
-      std::fs::remove_file(log_file).unwrap();
+    // First off, see if we even have a configuration directory.
+    if !super::core::user_config_path().exists() {
+      // If we don't, create it and add default files.
+      std::fs::create_dir_all(super::core::user_config_path());
+      save_config_file(&serde_json::to_string(&super::core::IntifaceConfiguration::default()).unwrap()).unwrap();
+      super::core::UserDeviceConfigManager::default().save_user_config();
     }
 
+    // Now that we at least have a directory to store logs in, set up logging.
+    let _logging_guard = setup_logging();    
+
+    // See if we have an engine.
+    if !super::core::engine_file_path().exists() {
+      // If not, uh...
+    }
+
+    // Everything is where we expect it to be. Actually set up and run the application.
     info!("Setting up application");
     let mut core = AppCore::default();
     let json_str = load_config_file().unwrap();
