@@ -36,9 +36,9 @@ impl Default for IntifaceDesktopApp {
     let dt: OffsetDateTime = SystemTime::now().into();
     let format_str = time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
 
-    let _file_appender = tracing_appender::rolling::never(super::core::user_config_directory(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
-    //let (non_blocking, _logging_guard) = tracing_appender::non_blocking(file_appender);
-    let (non_blocking, _logging_guard) = tracing_appender::non_blocking(std::io::stdout());
+    let file_appender = tracing_appender::rolling::never(super::core::user_config_directory(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
+    let (non_blocking, _logging_guard) = tracing_appender::non_blocking(file_appender);
+    //let (non_blocking, _logging_guard) = tracing_appender::non_blocking(std::io::stdout());
     
     let subscriber = fmt_sub
       //.json()
