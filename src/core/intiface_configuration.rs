@@ -11,36 +11,36 @@ fn default_tracing_level() -> String {
 #[getset(get_mut = "pub", set = "pub")]
 pub struct IntifaceConfiguration {
   #[getset(get = "pub")]
-  #[serde(rename="serverName", default)]
+  #[serde(default)]
   server_name: String,
   #[getset(get_copy = "pub")]
-  #[serde(rename="serverMaxPingTime", default)]
+  #[serde(default)]
   server_max_ping_time: u32,
   #[getset(get_copy = "pub")]
-  #[serde(rename="useWebsocketServerInsecure", default)]
+  #[serde(default)]
   use_websocket_server_insecure: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="websocketServerAllInterfaces", default)]
+  #[serde(default)]
   websocket_server_all_interfaces: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="websocketServerInsecurePort", default)]
+  #[serde(default)]
   websocket_server_insecure_port: u16,
-  #[serde(rename="serverLogLevel", default = "default_tracing_level")]
+  #[serde(default = "default_tracing_level")]
   server_log_level: String,
   #[getset(get_copy = "pub")]
-  #[serde(rename="usePrereleaseEngine", default)]
+  #[serde(default)]
   use_prerelease_engine: bool,
   #[getset(get = "pub")]
-  #[serde(rename="currentEngineVersion", default)]
+  #[serde(default)]
   current_engine_version: String,
   #[getset(get_copy = "pub")]
-  #[serde(rename="currentDeviceFileVersion", default)]
+  #[serde(default)]
   current_device_file_version: u32,
   #[getset(get_copy = "pub")]
-  #[serde(rename="checkForUpdatesOnStart", default)]
+  #[serde(default)]
   check_for_updates_on_start: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="hasRunSetup", default)]
+  #[serde(default)]
   has_run_setup: bool,
   #[getset(get_copy = "pub")]
   #[serde(skip)]
@@ -55,28 +55,28 @@ pub struct IntifaceConfiguration {
   #[serde(skip)]
   has_usable_engine_executable: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="startServerOnStartup", default)]
+  #[serde(default)]
   start_server_on_startup: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withBluetoothLE", default)]
+  #[serde(default)]
   with_bluetooth_le: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withSerialPort", default)]
+  #[serde(default)]
   with_serial_port: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withHID", default)]
+  #[serde(default)]
   with_hid: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withLovenseHIDDongle", default)]
+  #[serde(default)]
   with_lovense_hid_dongle: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withLovenseSerialDongle")]
+  #[serde(default)]
   with_lovense_serial_dongle: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withLovenseConnectService")]
+  #[serde(default)]
   with_lovense_connect_service: bool,
   #[getset(get_copy = "pub")]
-  #[serde(rename="withXInput")]
+  #[serde(default)]
   with_xinput: bool,
 }
 
