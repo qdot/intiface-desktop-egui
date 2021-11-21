@@ -1,5 +1,5 @@
 use crate::core::AppCore;
-use buttplug::{client::{ButtplugClient, VibrateCommand}, connector::{ButtplugRemoteClientConnector, ButtplugWebsocketClientTransport}, core::messages::{ButtplugCurrentSpecDeviceMessageType, serializer::ButtplugClientJSONSerializer}};
+use buttplug::{client::{ButtplugClient, RotateCommand, VibrateCommand}, connector::{ButtplugRemoteClientConnector, ButtplugWebsocketClientTransport}, core::messages::{ButtplugCurrentSpecDeviceMessageType, serializer::ButtplugClientJSONSerializer}};
 use eframe::egui;
 use std::sync::Arc;
 
@@ -66,6 +66,17 @@ impl DevicesPanel {
                       });
                     }
                     ui.memory().data.insert_temp(vibrate_id, vibrate_value);
+                  }
+                  if device.allowed_messages.contains_key(&ButtplugCurrentSpecDeviceMessageType::RotateCmd) {
+                    let rotate_id = ui.make_persistent_id(format!("DevicesPanel::Rotate::{}", device.index()));
+                    let mut rotate_value = ui.memory().data.get_temp_mut_or_default::<f64>(rotate_id).clone();
+                    if ui.add(egui::Slider::new::<f64>(&mut rotate_value, -1.0..=1.0).text("Rotation Level")).changed() {
+                      let device_clone = device.clone();
+                      tokio::spawn(async move {                        
+                        device_clone.rotate(RotateCommand::Rotate(rotate_value.abs(), rotate_value < 0f64)).await;
+                      });
+                    }
+                    ui.memory().data.insert_temp(rotate_id, rotate_value);
                   }
                 });
               }
