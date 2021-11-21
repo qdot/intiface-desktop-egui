@@ -14,6 +14,7 @@ AppVersion={#Version}
 AppPublisher=Nonpolynomial Labs, LLC
 AppPublisherURL=www.buttplug.io
 PrivilegesRequired=lowest
+AlwaysUsePersonalGroup=yes
 AppId={{0db5a4c3-d234-4923-a443-b5f63c683dbb}
 SetupIconFile=icons\intiface-desktop-logo.ico
 WizardImageFile=icons\intiface-desktop-logo.bmp
@@ -30,12 +31,13 @@ LicenseFile=LICENSE
 Name: "{localappdata}\IntifaceDesktopRust"
 
 [Files]
-Source: "target\release\intiface-desktop.exe"; DestDir: "{app}"; DestName: "IntifaceDesktop.exe"
+Source: "target\release\intiface-desktop.exe"; DestDir: "{app}"
+Source: "..\intiface-cli-rs\target\release\intiface-cli.exe"; DestDir: "{app}\engine"
 Source: "Readme.md"; DestDir: "{app}"; DestName: "Readme.txt"
 Source: "LICENSE"; DestDir: "{app}"; DestName: "License.txt"
 
 [Icons]
-Name: "{commonprograms}\Intiface Desktop"; Filename: "{app}\IntifaceDesktop.exe"
+Name: "{group}\Intiface Desktop"; Filename: "{app}\intiface-desktop.exe"
 
 // [Run]
 // Filename: "{app}\Readme.txt"; Description: "View the README file"; Flags: postinstall shellexec unchecked
