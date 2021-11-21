@@ -11,8 +11,7 @@ pub use process_manager::ProcessManager;
 pub use update_manager::*;
 pub use util::*;
 pub use file_storage::*;
-
-use self::user_device_config_manager::UserDeviceConfigManager;
+pub use user_device_config_manager::UserDeviceConfigManager;
 
 #[derive(Default)]
 pub struct AppCore {
