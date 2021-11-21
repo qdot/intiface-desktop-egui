@@ -9,9 +9,9 @@ pub const INTIFACE_LOGGING_DIRECTORY_NAME: &str = "logs";
 pub const INTIFACE_ENGINE_DIRECTORY_NAME: &str = "engine";
 
 #[cfg(target_os = "windows")]
-const EXECUTABLE_NAME: &str = "IntifaceCLI.exe";
+const EXECUTABLE_NAME: &str = "intiface-cli.exe";
 #[cfg(not(target_os = "windows"))]
-const EXECUTABLE_NAME: &str = "IntifaceCLI";
+const EXECUTABLE_NAME: &str = "intiface-cli";
 
 pub fn app_path() -> PathBuf {
   let mut dir = dirs::data_dir().unwrap();
@@ -60,6 +60,6 @@ pub fn engine_file_path() -> PathBuf {
 #[cfg(debug_assertions)]
 pub fn engine_file_path() -> PathBuf {
   let mut dir = PathBuf::from("c:\\Users\\qdot\\code\\intiface-cli-rs\\target\\debug");
-  dir.push("intiface-cli.exe");
+  dir.push(EXECUTABLE_NAME);
   dir
 }
