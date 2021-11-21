@@ -33,7 +33,7 @@ impl egui::Widget for LogPanel {
         let id = ui.make_persistent_id("tracing-egui::LogPanel");
         let mut state = ui.memory()
             .data
-            .get_persisted_mut_or_default::<LogPanelState>(id)
+            .get_temp_mut_or_default::<LogPanelState>(id)
             .clone();
 
         let mut response =
