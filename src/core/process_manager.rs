@@ -243,15 +243,14 @@ impl ProcessManager {
         .take(15)
         .map(char::from)
         .collect();
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     let pipe_name = format!("\\\\.\\pipe\\{}", rand_string);
-    #[cfg(not(target_os="windows"))]
+    #[cfg(not(target_os = "windows"))]
     unimplemented!("Implement domain socket name generation!");
 
     let command_path = util::engine_file_path();
     let args = self.build_arguments(&pipe_name, config);
-    info!("{:?}", command_path);
-    info!("{:?}", args);
+    info!("{:?} {}", command_path, args.join(" "));
     let process_ended_token = CancellationToken::new();
     let process_ended_token_child = process_ended_token.child_token();
     let (tx, rx) = mpsc::channel(1);
@@ -262,10 +261,19 @@ impl ProcessManager {
       run_windows_named_pipe(&pipe_name,  rx, process_ended_token_child, client_name, client_devices).await;
     });
 
-    match Command::new(command_path)
+    #[cfg(not(target_os = "windows"))]
+    let command_result = Command::new(command_path)
       .args(args)
       .kill_on_drop(true)
-      .spawn()
+      .spawn();
+    #[cfg(target_os = "windows")]
+    let command_result = Command::new(command_path)
+      .args(args)
+      .creation_flags(0x00000008)
+      .kill_on_drop(true)
+      .spawn();
+      
+    match command_result
     {
       Ok(mut child) => {
         let process_running = self.process_running.clone();
