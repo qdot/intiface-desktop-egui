@@ -1,27 +1,27 @@
 use super::{process_messages::*, util, IntifaceConfiguration};
+use dashmap::{DashMap, DashSet};
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use std::{
+  io,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
   },
-  io
 };
 use thiserror::Error;
 #[cfg(not(target_os = "windows"))]
 use tokio::net::unix::{UnixListener, UnixStream};
 #[cfg(target_os = "windows")]
 use tokio::net::windows::named_pipe;
-use tokio::{select, process::Command, sync::mpsc, io::Interest};
+use tokio::{io::Interest, process::Command, select, sync::mpsc};
 use tokio_util::sync::CancellationToken;
-use tracing::{info, warn, error};
-use rand::{thread_rng, Rng, distributions::Alphanumeric};
-use dashmap::{DashMap, DashSet};
+use tracing::{error, info, warn};
 
 #[derive(Clone, Debug)]
 pub struct ButtplugServerDevice {
   pub name: String,
   pub display_name: Option<String>,
-  pub address: String
+  pub address: String,
 }
 
 impl ButtplugServerDevice {
@@ -29,7 +29,7 @@ impl ButtplugServerDevice {
     Self {
       name: name.to_owned(),
       display_name,
-      address: address.to_owned()
+      address: address.to_owned(),
     }
   }
 }
@@ -38,7 +38,7 @@ pub struct ProcessManager {
   process_running: Arc<AtomicBool>,
   process_stop_sender: Option<mpsc::Sender<()>>,
   client_name: Arc<DashSet<String>>,
-  client_devices: Arc<DashMap<u32, ButtplugServerDevice>>
+  client_devices: Arc<DashMap<u32, ButtplugServerDevice>>,
 }
 
 impl Default for ProcessManager {
@@ -47,7 +47,7 @@ impl Default for ProcessManager {
       process_running: Arc::new(AtomicBool::new(false)),
       process_stop_sender: None,
       client_name: Arc::new(DashSet::new()),
-      client_devices: Arc::new(DashMap::new())
+      client_devices: Arc::new(DashMap::new()),
     }
   }
 }
@@ -66,7 +66,7 @@ fn translate_buffer(data: &mut Vec<u8>) -> Vec<EngineMessage> {
     match msg {
       Ok(msg) => {
         messages.push(msg);
-      },
+      }
       Err(e) => {
         //error!("{:?}", e);
         break;
@@ -77,7 +77,13 @@ fn translate_buffer(data: &mut Vec<u8>) -> Vec<EngineMessage> {
   messages
 }
 
-async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiver<()>, process_ended_token: CancellationToken, client_name: Arc<DashSet<String>>, client_devices: Arc<DashMap<u32, ButtplugServerDevice>>) {
+async fn run_windows_named_pipe(
+  pipe_name: &str,
+  mut stop_receiver: mpsc::Receiver<()>,
+  process_ended_token: CancellationToken,
+  client_name: Arc<DashSet<String>>,
+  client_devices: Arc<DashMap<u32, ButtplugServerDevice>>,
+) {
   info!("Starting named pipe server at {}", pipe_name);
   let server = named_pipe::ServerOptions::new()
     .first_pipe_instance(true)
@@ -129,7 +135,7 @@ async fn run_windows_named_pipe(pipe_name: &str, mut stop_receiver: mpsc::Receiv
                 Err(e) => {
                   //return Err(e.into());
                 }
-              }              
+              }
             }
           },
           Err(e) => {
@@ -234,15 +240,19 @@ impl ProcessManager {
       args.push("--with-lovense-connect".to_owned());
     }
 
+    if config.crash_reporting() {
+      args.push("--crash-reporting".to_owned());
+    }
+
     args
   }
 
   pub fn run(&mut self, config: &IntifaceConfiguration) -> Result<(), ProcessError> {
     let rand_string: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(15)
-        .map(char::from)
-        .collect();
+      .sample_iter(&Alphanumeric)
+      .take(15)
+      .map(char::from)
+      .collect();
     #[cfg(target_os = "windows")]
     let pipe_name = format!("\\\\.\\pipe\\{}", rand_string);
     #[cfg(not(target_os = "windows"))]
@@ -258,7 +268,14 @@ impl ProcessManager {
     let client_name = self.client_name.clone();
     let client_devices = self.client_devices.clone();
     tokio::spawn(async move {
-      run_windows_named_pipe(&pipe_name,  rx, process_ended_token_child, client_name, client_devices).await;
+      run_windows_named_pipe(
+        &pipe_name,
+        rx,
+        process_ended_token_child,
+        client_name,
+        client_devices,
+      )
+      .await;
     });
 
     #[cfg(not(target_os = "windows"))]
@@ -272,9 +289,8 @@ impl ProcessManager {
       .creation_flags(0x00000008)
       .kill_on_drop(true)
       .spawn();
-      
-    match command_result
-    {
+
+    match command_result {
       Ok(mut child) => {
         let process_running = self.process_running.clone();
         process_running.store(true, Ordering::SeqCst);
@@ -322,6 +338,10 @@ impl ProcessManager {
   }
 
   pub fn client_devices(&self) -> Vec<ButtplugServerDevice> {
-    self.client_devices.iter().map(|val| val.value().clone()).collect()
+    self
+      .client_devices
+      .iter()
+      .map(|val| val.value().clone())
+      .collect()
   }
 }

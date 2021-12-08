@@ -78,6 +78,9 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(default)]
   with_xinput: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(default)]
+  crash_reporting: bool,
 }
 
 impl Default for IntifaceConfiguration {
@@ -106,6 +109,7 @@ impl Default for IntifaceConfiguration {
       with_lovense_serial_dongle: true,
       with_lovense_connect_service: false,
       with_xinput: true,
+      crash_reporting: false,
     }
   }
 }

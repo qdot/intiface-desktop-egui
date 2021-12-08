@@ -14,6 +14,9 @@ impl SettingsPanel {
     let original_config = core.config.clone();
 
     ui.vertical(|ui| {
+      ui.collapsing("General", |ui| {
+        ui.checkbox(core.config.crash_reporting_mut(), "Crash Reporting");
+      });
       ui.collapsing("Versions and Updates", |ui| {
         ui.horizontal(|ui| {
           if !core.update_manager.is_updating() {
@@ -93,6 +96,14 @@ impl SettingsPanel {
       ui.collapsing("Other Settings", |ui| {
         ui.horizontal(|ui| {
           ui.button("Reset Intiface Configuration");
+        })
+      });
+      #[cfg(debug_assertions)]
+      ui.collapsing("Debug", |ui| {
+        ui.horizontal(|ui| {
+          if ui.button("Crash process").clicked() {
+            panic!("Crashing due to request.")
+          }
         })
       });
     });
