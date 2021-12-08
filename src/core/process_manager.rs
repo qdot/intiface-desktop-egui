@@ -1,5 +1,6 @@
 use super::{process_messages::*, util, IntifaceConfiguration};
 use dashmap::{DashMap, DashSet};
+use notify_rust::Notification;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use std::{
   io,
@@ -108,10 +109,18 @@ async fn run_windows_named_pipe(
                         log_msg.log_event();
                       }
                       EngineMessage::ClientConnected(name) => {
+                        Notification::new()
+                            .summary("Intiface Client Connected")
+                            .body(&format!("Client {} connected to Intiface Desktop.", name))
+                            .show();
                         client_name.clear();
                         client_name.insert(name.clone());
                       }
                       EngineMessage::ClientDisconnected => {
+                        Notification::new()
+                            .summary("Intiface Client Disconnected")
+                            .body(&format!("Client disconnected from Intiface Desktop."))
+                            .show();
                         client_name.clear();
                       }
                       EngineMessage::DeviceConnected { name, index, address, display_name } => {
@@ -120,6 +129,10 @@ async fn run_windows_named_pipe(
                         } else {
                           Some(display_name.clone())
                         };
+                        Notification::new()
+                            .summary("Intiface Device Connected")
+                            .body(&format!("Device {} ({:?}) connected to Intiface Desktop.", name, display_name))
+                            .show();
                         client_devices.insert(*index, ButtplugServerDevice::new(&name, display_name, &address));
                       }
                       EngineMessage::DeviceDisconnected(index) => {
