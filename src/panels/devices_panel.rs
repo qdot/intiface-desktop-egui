@@ -1,7 +1,9 @@
 use crate::core::AppCore;
-use buttplug::{client::{ButtplugClient, RotateCommand, VibrateCommand}, connector::{ButtplugRemoteClientConnector, ButtplugWebsocketClientTransport}, core::messages::{ButtplugCurrentSpecDeviceMessageType, serializer::ButtplugClientJSONSerializer}};
+use buttplug::{client::{ButtplugClient, RotateCommand, VibrateCommand, ButtplugClientEvent}, connector::{ButtplugRemoteClientConnector, ButtplugWebsocketClientTransport}, core::messages::{ButtplugCurrentSpecDeviceMessageType, serializer::ButtplugClientJSONSerializer}};
 use eframe::egui;
 use std::sync::Arc;
+use futures::StreamExt;
+use tracing::info;
 
 #[derive(Default)]
 pub struct DevicesPanel {}
@@ -89,11 +91,24 @@ impl DevicesPanel {
               
               tokio::spawn(async move {
                 let connector = ButtplugRemoteClientConnector::<ButtplugWebsocketClientTransport, ButtplugClientJSONSerializer>::new(ButtplugWebsocketClientTransport::new_insecure_connector("ws://localhost:12345"));
+                let mut stream = client_clone.event_stream();
                 client_clone.connect(connector).await;
+                while let Some(event) = stream.next().await {
+                  match event {
+                    ButtplugClientEvent::ServerDisconnect => break,
+                    msg => info!("Client got event: {:?}", msg)
+                  }
+                }
               });
             }
           }
         });
+      } else {
+        let id = ui.make_persistent_id("DevicesPanel::ButtplugClient");
+        let maybe_client = ui.memory().data.get_temp::<Arc<ButtplugClient>>(id).clone();        
+        if maybe_client.is_some() {
+          ui.memory().data.remove::<Arc<ButtplugClient>>(id);
+        }      
       }
     });
   }
