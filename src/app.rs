@@ -180,8 +180,8 @@ impl epi::App for IntifaceDesktopApp {
     if let Some(d) = core.modal_manager.get_modal_dialog() {
       egui::CentralPanel::default().show(ctx, |ui| {
         ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::TopDown), |ui| {
-          ui.set_max_height(ui.available_height() * 0.33);
-          ui.set_max_width(ui.available_width() * 0.33);
+          ui.set_max_height(ui.available_height() * 0.25);
+          ui.set_max_width(ui.available_width() * 0.5);
           d.render(core, ui);
         });
       });
