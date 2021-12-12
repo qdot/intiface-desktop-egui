@@ -84,6 +84,7 @@ async fn run_windows_named_pipe(
   process_ended_token: CancellationToken,
   client_name: Arc<DashSet<String>>,
   client_devices: Arc<DashMap<u32, ButtplugServerDevice>>,
+  show_notifications: bool
 ) {
   info!("Starting named pipe server at {}", pipe_name);
   let server = named_pipe::ServerOptions::new()
@@ -109,18 +110,22 @@ async fn run_windows_named_pipe(
                         log_msg.log_event();
                       }
                       EngineMessage::ClientConnected(name) => {
-                        Notification::new()
+                        if show_notifications {
+                          Notification::new()
                             .summary("Intiface Client Connected")
                             .body(&format!("Client {} connected to Intiface Desktop.", name))
                             .show();
+                        }
                         client_name.clear();
                         client_name.insert(name.clone());
                       }
                       EngineMessage::ClientDisconnected => {
-                        Notification::new()
-                            .summary("Intiface Client Disconnected")
-                            .body(&format!("Client disconnected from Intiface Desktop."))
-                            .show();
+                        if show_notifications {
+                          Notification::new()
+                              .summary("Intiface Client Disconnected")
+                              .body(&format!("Client disconnected from Intiface Desktop."))
+                              .show();
+                        }
                         client_name.clear();
                       }
                       EngineMessage::DeviceConnected { name, index, address, display_name } => {
@@ -129,10 +134,12 @@ async fn run_windows_named_pipe(
                         } else {
                           Some(display_name.clone())
                         };
-                        Notification::new()
-                            .summary("Intiface Device Connected")
-                            .body(&format!("Device {} ({:?}) connected to Intiface Desktop.", name, display_name))
-                            .show();
+                        if show_notifications {
+                          Notification::new()
+                              .summary("Intiface Device Connected")
+                              .body(&format!("Device {} ({:?}) connected to Intiface Desktop.", name, display_name))
+                              .show();
+                        }
                         client_devices.insert(*index, ButtplugServerDevice::new(&name, display_name, &address));
                       }
                       EngineMessage::DeviceDisconnected(index) => {
@@ -271,6 +278,7 @@ impl ProcessManager {
     #[cfg(not(target_os = "windows"))]
     unimplemented!("Implement domain socket name generation!");
 
+    let show_notifications = config.show_notifications();
     let command_path = util::engine_file_path();
     let args = self.build_arguments(&pipe_name, config);
     info!("{:?} {}", command_path, args.join(" "));
@@ -287,6 +295,7 @@ impl ProcessManager {
         process_ended_token_child,
         client_name,
         client_devices,
+        show_notifications
       )
       .await;
     });
