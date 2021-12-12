@@ -92,7 +92,17 @@ impl Default for IntifaceDesktopApp {
     info!("Setting up application");
     let mut core = AppCore::default();
     let json_str = load_config_file().unwrap();
-    core.config = IntifaceConfiguration::load_from_string(&json_str).unwrap();
+    core.config = match IntifaceConfiguration::load_from_string(&json_str) {
+      Ok(config) => config,
+      Err(err) => {
+        error!("Error while loading configuration file: {:?}", err);
+        info!("Resetting configuration file.");
+        core.modal_manager.set_ok_modal_dialog("Your intiface configuration file was corrupt or missing, and has been reset. You may need to update or change settings.");
+        let config = super::core::IntifaceConfiguration::default();
+        save_config_file(&serde_json::to_string(&config).unwrap()).unwrap();
+        config
+      }
+    };
 
     const API_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/sentry_api_key.txt"));
     let _sentry_guard = if core.config.crash_reporting() && !API_KEY.is_empty() {

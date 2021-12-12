@@ -1,4 +1,4 @@
-use crate::{core::{save_config_file, AppCore, ModalDialog}};
+use crate::{core::{save_config_file, AppCore, ModalDialog, user_config_path}};
 use eframe::egui;
 
 #[derive(Default)]
@@ -10,7 +10,8 @@ impl ModalDialog for ResetIntifaceModalDialog {
       ui.label("You are about to reset your user and device configurations for Intiface Desktop. Are you sure you want to do this?");
       ui.horizontal(|ui| {
         if ui.button("Ok").clicked() {
-  
+          std::fs::remove_dir_all(user_config_path());
+          std::process::exit(0);
         }
         if ui.button("Cancel").clicked() {
           core.modal_manager.clear_modal_dialog();
