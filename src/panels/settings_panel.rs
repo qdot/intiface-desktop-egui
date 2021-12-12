@@ -1,5 +1,24 @@
-use crate::core::{save_config_file, AppCore};
+use crate::{core::{save_config_file, AppCore, ModalDialog}};
 use eframe::egui;
+
+#[derive(Default)]
+pub struct ResetIntifaceModalDialog {}
+
+impl ModalDialog for ResetIntifaceModalDialog {
+  fn render(&self, core: &mut AppCore, ui: &mut egui::Ui) {
+    ui.vertical(|ui| {
+      ui.label("You are about to reset your user and device configurations for Intiface Desktop. Are you sure you want to do this?");
+      ui.horizontal(|ui| {
+        if ui.button("Ok").clicked() {
+  
+        }
+        if ui.button("Cancel").clicked() {
+          core.modal_manager.clear_modal_dialog();
+        }
+      });
+    });
+  }
+}
 
 #[derive(Default)]
 pub struct SettingsPanel {}
@@ -15,6 +34,7 @@ impl SettingsPanel {
 
     ui.vertical(|ui| {
       ui.collapsing("General", |ui| {
+        ui.checkbox(core.config.show_notifications_mut(), "Desktop Notifications");
         ui.checkbox(core.config.crash_reporting_mut(), "Crash Reporting");
       });
       ui.collapsing("Versions and Updates", |ui| {
@@ -95,7 +115,9 @@ impl SettingsPanel {
       });
       ui.collapsing("Other Settings", |ui| {
         ui.horizontal(|ui| {
-          ui.button("Reset Intiface Configuration");
+          if ui.button("Reset Intiface Configuration").clicked() {
+            core.modal_manager.set_modal_dialog(ResetIntifaceModalDialog {});
+          }
         })
       });
       #[cfg(debug_assertions)]

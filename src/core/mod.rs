@@ -3,12 +3,14 @@ mod process_manager;
 mod update_manager;
 mod util;
 mod file_storage;
+mod modal_manager;
 mod process_messages;
 mod user_device_config_manager;
 
 pub use intiface_configuration::IntifaceConfiguration;
 pub use process_manager::ProcessManager;
 pub use update_manager::*;
+pub use modal_manager::*;
 pub use util::*;
 pub use file_storage::*;
 pub use user_device_config_manager::UserDeviceConfigManager;
@@ -18,5 +20,6 @@ pub struct AppCore {
   pub config: IntifaceConfiguration,
   pub process_manager: ProcessManager,
   pub update_manager: UpdateManager,
-  pub user_device_config_manager: UserDeviceConfigManager
+  pub user_device_config_manager: UserDeviceConfigManager,
+  pub modal_manager: ModalManager,
 }

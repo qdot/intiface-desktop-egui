@@ -117,6 +117,7 @@ impl Default for IntifaceDesktopApp {
   }
 }
 
+
 impl epi::App for IntifaceDesktopApp {
   fn name(&self) -> &str {
     "Intiface Desktop"
@@ -167,6 +168,7 @@ impl epi::App for IntifaceDesktopApp {
       });
     });
 
+
     /*
     egui::TopBottomPanel::bottom("bottom_panel").resizable(true).default_height(40.0).show(ctx, |ui| {
       // The top panel is often a good place for a menu bar:
@@ -175,33 +177,41 @@ impl epi::App for IntifaceDesktopApp {
       });
     });
     */  
-    egui::SidePanel::left("side_panel").show(ctx, |ui| {
-      ui.heading("Intiface Desktop v41");
+    if let Some(d) = core.modal_manager.get_modal_dialog() {
+      egui::CentralPanel::default().show(ctx, |ui| {
+        ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::TopDown), |ui| {
+          ui.set_max_height(ui.available_height() * 0.33);
+          ui.set_max_width(ui.available_width() * 0.33);
+          d.render(core, ui);
+        });
+      });
+    } else {
+      egui::SidePanel::left("side_panel").show(ctx, |ui| {
+        ui.heading("Intiface Desktop v41");
 
-      ui.vertical(|ui| {
-        ui.selectable_value(current_screen, AppScreens::ServerStatus, "Server Status");
-        ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
-        ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
-        ui.selectable_value(current_screen, AppScreens::Log, "Log");
-        ui.selectable_value(current_screen, AppScreens::Help, "Help");
-        ui.selectable_value(current_screen, AppScreens::About, "About");
+        ui.vertical(|ui| {
+          ui.selectable_value(current_screen, AppScreens::ServerStatus, "Server Status");
+          ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
+          ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
+          ui.selectable_value(current_screen, AppScreens::Log, "Log");
+          ui.selectable_value(current_screen, AppScreens::Help, "Help");
+          ui.selectable_value(current_screen, AppScreens::About, "About");
+        });
+
+        egui::warn_if_debug_build(ui);
       });
 
-      egui::warn_if_debug_build(ui);
-    });
-
-    egui::CentralPanel::default().show(ctx, |ui| {
-      // The central panel the region left after adding TopPanel's and SidePanel's
-
-      egui::ScrollArea::vertical().show_viewport(ui, |ui, r| match current_screen {
-        AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
-        AppScreens::Devices => DevicesPanel::default().update(core, ui),
-        AppScreens::Settings => SettingsPanel::default().update(core, ui),
-        AppScreens::Log => {
-          ui.add(LogPanel);
-        },
-        _ => {}
+      egui::CentralPanel::default().show(ctx, |ui| {
+        egui::ScrollArea::vertical().show_viewport(ui, |ui, r| match current_screen {
+          AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
+          AppScreens::Devices => DevicesPanel::default().update(core, ui),
+          AppScreens::Settings => SettingsPanel::default().update(core, ui),
+          AppScreens::Log => {
+            ui.add(LogPanel);
+          },
+          _ => {}
+        });
       });
-    });
+    }
   }
 }
