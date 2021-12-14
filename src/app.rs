@@ -3,7 +3,7 @@ use eframe::{egui, epi};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{prelude::*, EnvFilter};
 use tracing::{info, warn};
-use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel, DevicesPanel};
+use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel, DevicesPanel, AboutPanel};
 use time::OffsetDateTime;
 use std::time::SystemTime;
 
@@ -13,7 +13,6 @@ enum AppScreens {
   Devices,
   Settings,
   Log,
-  Help,
   About,
 }
 
@@ -204,8 +203,7 @@ impl epi::App for IntifaceDesktopApp {
           ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
           ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
           ui.selectable_value(current_screen, AppScreens::Log, "Log");
-          ui.selectable_value(current_screen, AppScreens::Help, "Help");
-          ui.selectable_value(current_screen, AppScreens::About, "About");
+          ui.selectable_value(current_screen, AppScreens::About, "Help/About");
         });
 
         egui::warn_if_debug_build(ui);
@@ -216,6 +214,7 @@ impl epi::App for IntifaceDesktopApp {
           AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
           AppScreens::Devices => DevicesPanel::default().update(core, ui),
           AppScreens::Settings => SettingsPanel::default().update(core, ui),
+          AppScreens::About => AboutPanel::default().update(core, ui),
           AppScreens::Log => {
             ui.add(LogPanel);
           },
