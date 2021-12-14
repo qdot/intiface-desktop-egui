@@ -1,5 +1,6 @@
-use crate::{core::{save_config_file, AppCore, ModalDialog, user_config_path}};
+use crate::core::{save_config_file, user_config_path, AppCore, ModalDialog};
 use eframe::egui;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Default)]
 pub struct ResetIntifaceModalDialog {}
@@ -21,6 +22,32 @@ impl ModalDialog for ResetIntifaceModalDialog {
   }
 }
 
+#[derive(Default, Debug)]
+pub struct UpdateDialog {
+  has_updated: AtomicBool
+}
+
+impl ModalDialog for UpdateDialog {
+  fn render(&self, core: &mut AppCore, ui: &mut egui::Ui) {
+    ui.vertical(|ui| {
+      if core.update_manager.is_updating() {
+        ui.label("Updating, please wait...");
+      } else {
+        if !self.has_updated.load(Ordering::SeqCst) {
+          core.update_manager.update_config(&mut core.config);
+          self.has_updated.store(true, Ordering::SeqCst);
+        }
+        ui.horizontal(|ui| {
+          ui.label("Update finished!");
+          if ui.button("Ok").clicked() {
+            core.modal_manager.clear_modal_dialog();
+          }
+        });
+      }
+    });
+  }
+}
+
 #[derive(Default)]
 pub struct SettingsPanel {}
 
@@ -35,7 +62,10 @@ impl SettingsPanel {
 
     ui.vertical(|ui| {
       ui.collapsing("General", |ui| {
-        ui.checkbox(core.config.show_notifications_mut(), "Desktop Notifications");
+        ui.checkbox(
+          core.config.show_notifications_mut(),
+          "Desktop Notifications",
+        );
         ui.checkbox(core.config.crash_reporting_mut(), "Crash Reporting");
       });
       ui.collapsing("Versions and Updates", |ui| {
@@ -44,6 +74,7 @@ impl SettingsPanel {
             if core.update_manager.needs_updates() {
               if ui.button("Get Updates").clicked() {
                 core.update_manager.get_updates();
+                core.modal_manager.set_modal_dialog(UpdateDialog::default());
               }
             }
             if ui.button("Check For Updates").clicked() {
@@ -88,11 +119,31 @@ impl SettingsPanel {
         });
         ui.horizontal(|ui| {
           ui.label("Server Log Level");
-          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::ERROR.to_string(), "Error");
-          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::WARN.to_string(), "Warn");
-          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::INFO.to_string(), "Info");
-          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::DEBUG.to_string(), "Debug");
-          ui.selectable_value(core.config.server_log_level_mut(), tracing::Level::TRACE.to_string(), "Trace");
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::ERROR.to_string(),
+            "Error",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::WARN.to_string(),
+            "Warn",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::INFO.to_string(),
+            "Info",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::DEBUG.to_string(),
+            "Debug",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::TRACE.to_string(),
+            "Trace",
+          );
         });
       });
       ui.collapsing("Server Websocket Settings", |ui| {
@@ -117,7 +168,9 @@ impl SettingsPanel {
       ui.collapsing("Other Settings", |ui| {
         ui.horizontal(|ui| {
           if ui.button("Reset Intiface Configuration").clicked() {
-            core.modal_manager.set_modal_dialog(ResetIntifaceModalDialog {});
+            core
+              .modal_manager
+              .set_modal_dialog(ResetIntifaceModalDialog {});
           }
         })
       });

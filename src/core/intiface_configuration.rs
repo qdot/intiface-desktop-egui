@@ -32,7 +32,7 @@ pub struct IntifaceConfiguration {
   use_prerelease_engine: bool,
   #[getset(get = "pub")]
   #[serde(default)]
-  current_engine_version: String,
+  current_engine_version: u32,
   #[getset(get_copy = "pub")]
   #[serde(default)]
   current_device_file_version: u32,
@@ -96,7 +96,7 @@ impl Default for IntifaceConfiguration {
       websocket_server_insecure_port: 12345,
       server_log_level: tracing::Level::INFO.to_string(),
       use_prerelease_engine: false,
-      current_engine_version: "0".to_owned(),
+      current_engine_version: 0,
       current_device_file_version: 0,
       check_for_updates_on_start: true,
       has_run_setup: false,
