@@ -210,14 +210,12 @@ impl epi::App for IntifaceDesktopApp {
       });
 
       egui::CentralPanel::default().show(ctx, |ui| {
-        egui::ScrollArea::vertical().show_viewport(ui, |ui, r| match current_screen {
+        egui::ScrollArea::vertical().id_source("main_panel").show(ui, |ui| match current_screen {
           AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
           AppScreens::Devices => DevicesPanel::default().update(core, ui),
           AppScreens::Settings => SettingsPanel::default().update(core, ui),
           AppScreens::About => AboutPanel::default().update(core, ui),
-          AppScreens::Log => {
-            ui.add(LogPanel);
-          },
+          AppScreens::Log => LogPanel::default().update(ui),
           _ => {}
         });
       });
