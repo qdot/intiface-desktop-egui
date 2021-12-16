@@ -16,7 +16,7 @@ use tokio::net::unix::{UnixListener, UnixStream};
 use tokio::net::windows::named_pipe;
 use tokio::{io::Interest, process::Command, select, sync::mpsc};
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use sentry::SentryFutureExt;
 
 #[derive(Clone, Debug)]
 pub struct ButtplugServerDevice {
@@ -298,7 +298,7 @@ impl ProcessManager {
         show_notifications
       )
       .await;
-    });
+    }.bind_hub(sentry::Hub::current().clone()));
 
     #[cfg(not(target_os = "windows"))]
     let command_result = Command::new(command_path)
@@ -328,7 +328,7 @@ impl ProcessManager {
           }
           process_running.store(false, Ordering::SeqCst);
           process_ended_token.cancel();
-        });
+        }.bind_hub(sentry::Hub::current().clone()));
         Ok(())
       }
       Err(err) => Err(ProcessError::ProcessStartupError(err.to_string())),

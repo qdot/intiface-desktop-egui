@@ -7,6 +7,7 @@ use std::{fs::File, io::{self,copy}};
 use thiserror::Error;
 use tracing::{error, info};
 use super::{util, IntifaceConfiguration};
+use sentry::SentryFutureExt;
 
 #[cfg(debug_assertions)]
 const BUTTPLUG_REPO_OWNER: &str = "qdot";
@@ -52,8 +53,8 @@ impl UpdateManager {
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
       tokio::join!(
-          async move { device_check_fut.await },
-          async move { engine_check_fut.await }
+          async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
+          async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone())
       );
       is_updating.store(false, Ordering::SeqCst);
     });

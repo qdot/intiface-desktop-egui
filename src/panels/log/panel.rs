@@ -59,7 +59,9 @@ impl LogPanel {
 
     egui::TopBottomPanel::bottom("Log Buttons").show(ui.ctx(), |ui| {
       ui.horizontal(|ui| {
-        if ui.button("Send Logs To Sentry").clicked() {}
+        if ui.button("Send Logs To Sentry").clicked() {
+          sentry::capture_message("User requested to send a log.", sentry::Level::Info);
+        }
         if ui.button("Clear Log Display").clicked() {
           let mut log_entries = LOG_ENTRIES.lock();
           log_entries.clear();

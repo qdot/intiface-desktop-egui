@@ -4,6 +4,7 @@ use eframe::egui;
 use std::sync::Arc;
 use futures::StreamExt;
 use tracing::info;
+use sentry::SentryFutureExt;
 
 #[derive(Default)]
 pub struct DevicesPanel {}
@@ -54,7 +55,7 @@ impl DevicesPanel {
                 let client_clone = client.clone();
                 tokio::spawn(async move {
                   client_clone.start_scanning().await;
-                });
+                }.bind_hub(sentry::Hub::current().clone()));
               }
               for device in client.devices() {
                 ui.collapsing(format!("{}", device.name), |ui| {
@@ -65,7 +66,7 @@ impl DevicesPanel {
                       let device_clone = device.clone();
                       tokio::spawn(async move {
                         device_clone.vibrate(VibrateCommand::Speed(vibrate_value)).await;
-                      });
+                      }.bind_hub(sentry::Hub::current().clone()));
                     }
                     ui.memory().data.insert_temp(vibrate_id, vibrate_value);
                   }
@@ -76,7 +77,7 @@ impl DevicesPanel {
                       let device_clone = device.clone();
                       tokio::spawn(async move {                        
                         device_clone.rotate(RotateCommand::Rotate(rotate_value.abs(), rotate_value < 0f64)).await;
-                      });
+                      }.bind_hub(sentry::Hub::current().clone()));
                     }
                     ui.memory().data.insert_temp(rotate_id, rotate_value);
                   }
@@ -99,7 +100,7 @@ impl DevicesPanel {
                     msg => info!("Client got event: {:?}", msg)
                   }
                 }
-              });
+              }.bind_hub(sentry::Hub::current().clone()));
             }
           }
         });

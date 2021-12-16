@@ -65,7 +65,7 @@ fn setup_logging() -> WorkerGuard {
     let log_file = logs.remove(0);
     std::fs::remove_file(log_file).unwrap();
   }
- 
+
   logging_guard
 }
 
@@ -117,6 +117,7 @@ impl Default for IntifaceDesktopApp {
       }
       None
     };
+    info!("App created successfully.");
     Self {
       current_screen: AppScreens::ServerStatus,
       core,
