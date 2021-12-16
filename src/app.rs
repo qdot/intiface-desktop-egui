@@ -151,8 +151,6 @@ impl epi::App for IntifaceDesktopApp {
     epi::set_value(storage, epi::APP_KEY, self);
   }
 
-  /// Called each time the UI needs repainting, which may be many times per second.
-  /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::CtxRef, frame: &mut epi::Frame<'_>) {
     let Self {
       current_screen,
@@ -160,11 +158,6 @@ impl epi::App for IntifaceDesktopApp {
       _logging_guard: _,
       _sentry_guard: _,
     } = self;
-
-    // Examples of how to create different panels and windows.
-    // Pick whichever suits you.
-    // Tip: a good default choice is to just keep the `CentralPanel`.
-    // For inspiration and more examples, go to https://emilk.github.io/egui
 
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
       // The top panel is often a good place for a menu bar:
