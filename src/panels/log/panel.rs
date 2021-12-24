@@ -71,6 +71,7 @@ impl LogPanel {
 
     egui::CentralPanel::default().show(ui.ctx(), |ui| {
       egui::ScrollArea::vertical().id_source("log_panel").show(ui, |ui| {
+        ui.set_min_width(ui.available_width());
         let log_entries = LOG_ENTRIES.lock();
         for (log_ix, log) in log_entries.iter().enumerate().rev() {
           let filtered_out = match *log.meta.level() {

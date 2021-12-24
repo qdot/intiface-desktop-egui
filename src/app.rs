@@ -3,7 +3,8 @@ use super::panels::{
 };
 use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
-use std::time::SystemTime;
+use egui::{FontDefinitions, FontFamily, TextStyle};
+use std::{cell::Cell, rc::Rc, time::SystemTime};
 use time::OffsetDateTime;
 use tracing::{info, warn};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -11,8 +12,6 @@ use tracing_subscriber::{prelude::*, EnvFilter};
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
-  FirstUsePanel,
-  ServerStatus,
   Devices,
   Settings,
   Log,
@@ -22,9 +21,11 @@ enum AppScreens {
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))] // if we add new fields, give them default values when deserializing old state
+
 pub struct IntifaceDesktopApp {
   current_screen: AppScreens,
   core: AppCore,
+  expanded: Rc<Cell<bool>>,
   _logging_guard: tracing_appender::non_blocking::WorkerGuard,
   _sentry_guard: Option<sentry::ClientInitGuard>,
 }
@@ -132,14 +133,10 @@ impl Default for IntifaceDesktopApp {
       None
     };
     info!("App created successfully.");
-    let current_screen = if core.config.has_run_first_use() {
-      AppScreens::ServerStatus
-    } else {
-      AppScreens::FirstUsePanel
-    };
     Self {
-      current_screen,
+      current_screen: AppScreens::Devices,
       core,
+      expanded: Rc::new(Cell::new(false)),
       _logging_guard,
       _sentry_guard,
     }
@@ -152,16 +149,26 @@ impl epi::App for IntifaceDesktopApp {
   }
 
   /// Called by the framework to load old app state (if any).
-  #[cfg(feature = "persistence")]
+  //#[cfg(feature = "persistence")]
   fn setup(
     &mut self,
-    _ctx: &egui::CtxRef,
+    ctx: &egui::CtxRef,
     _frame: &mut epi::Frame<'_>,
     storage: Option<&dyn epi::Storage>,
   ) {
+    /*
     if let Some(storage) = storage {
       *self = epi::get_value(storage, epi::APP_KEY).unwrap_or_default()
     }
+    */
+    // Large button text via overriding the HEADING style.
+    let mut fonts = FontDefinitions::default();
+
+    fonts
+      .family_and_size
+      .insert(TextStyle::Heading, (FontFamily::Proportional, 48.0));
+
+    ctx.set_fonts(fonts);
   }
 
   /// Called by the frame work to save state before shutdown.
@@ -174,20 +181,10 @@ impl epi::App for IntifaceDesktopApp {
     let Self {
       current_screen,
       core,
+      expanded: _,
       _logging_guard: _,
       _sentry_guard: _,
     } = self;
-
-    egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-      // The top panel is often a good place for a menu bar:
-      egui::menu::bar(ui, |ui| {
-        egui::menu::menu_button(ui, "File", |ui| {
-          if ui.button("Quit").clicked() {
-            frame.quit();
-          }
-        });
-      });
-    });
 
     /*
     egui::TopBottomPanel::bottom("bottom_panel").resizable(true).default_height(40.0).show(ctx, |ui| {
@@ -208,38 +205,75 @@ impl epi::App for IntifaceDesktopApp {
           },
         );
       });
+    } else if !core.config.has_run_first_use() {
+      egui::CentralPanel::default().show(ctx, |ui| {
+        FirstUsePanel::default().update(core, ui);
+      });
     } else {
-      if *current_screen != AppScreens::FirstUsePanel {
+      let mut available_minimized_width = 0f32;
+      let mut available_minimized_height = 0f32;
+      egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+        ServerStatusPanel::default().update(core, ui);
+        //available_minimized_width = ui.available_width
+        available_minimized_height += ui.min_size().y;
+      });
+      let expanded = self.expanded.clone();
+      egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+          ui.with_layout(
+            egui::Layout::centered_and_justified(egui::Direction::TopDown),
+            |ui| {
+              if !core.config.show_extended_ui() {
+                if ui.button("⏷").clicked() {
+                  expanded.set(true);
+                  *core.config.show_extended_ui_mut() = true;
+                }
+              } else {
+                if ui.button("⏶").clicked() {
+                  *core.config.show_extended_ui_mut() = false;
+                }
+              }
+            },
+          );
+        });
+        available_minimized_height += ui.min_size().y;
+      });
+      if core.config.show_extended_ui() {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-          ui.heading("Intiface Desktop v41");
-
           ui.vertical(|ui| {
-            ui.selectable_value(current_screen, AppScreens::ServerStatus, "Server Status");
             ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
             ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
             ui.selectable_value(current_screen, AppScreens::Log, "Log");
             ui.selectable_value(current_screen, AppScreens::About, "Help/About");
           });
-
-          egui::warn_if_debug_build(ui);
+          available_minimized_height += ui.min_size().y;
         });
-      } else if core.config.has_run_first_use() {
-        *current_screen = AppScreens::ServerStatus;
-      }
+        egui::CentralPanel::default().show(ctx, |ui| {
+          egui::ScrollArea::vertical()
+            .id_source("main_panel")
+            .show(ui, |ui| {
+              ui.set_min_width(ui.available_width());
+              match current_screen {
+                AppScreens::Devices => DevicesPanel::default().update(core, ui),
+                AppScreens::Settings => SettingsPanel::default().update(core, ui),
+                AppScreens::About => AboutPanel::default().update(core, ui),
+                AppScreens::Log => LogPanel::default().update(ui),
+                _ => {}
+              };
+            });
+        });
+        if expanded.get() {
+          info!("Resetting window height");
+          expanded.set(false);
 
-      egui::CentralPanel::default().show(ctx, |ui| {
-        egui::ScrollArea::vertical()
-          .id_source("main_panel")
-          .show(ui, |ui| match current_screen {
-            AppScreens::FirstUsePanel => FirstUsePanel::default().update(core, ui),
-            AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
-            AppScreens::Devices => DevicesPanel::default().update(core, ui),
-            AppScreens::Settings => SettingsPanel::default().update(core, ui),
-            AppScreens::About => AboutPanel::default().update(core, ui),
-            AppScreens::Log => LogPanel::default().update(ui),
-            _ => {}
-          });
-      });
+          frame.set_window_size(egui::vec2(500f32, available_minimized_height + 30f32));
+        }
+      } else {
+        frame.set_window_size(egui::vec2(500f32, available_minimized_height + 8f32));
+      }
     }
+
+    // Run continuously for now, see what this does to CPU.
+    //ctx.request_repaint();
   }
 }
