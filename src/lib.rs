@@ -2,6 +2,9 @@
 //#![cfg_attr(not(debug_assertions), deny(warnings))] // Forbid warnings in release builds
 #![warn(clippy::all, rust_2018_idioms)]
 
+#[macro_use]
+extern crate tracing;
+
 mod app;
 mod core;
 mod panels;
