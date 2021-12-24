@@ -84,6 +84,9 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(default)]
   show_notifications: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(default)]
+  has_run_first_use: bool,
 }
 
 impl Default for IntifaceConfiguration {
@@ -114,6 +117,7 @@ impl Default for IntifaceConfiguration {
       with_xinput: true,
       crash_reporting: false,
       show_notifications: true,
+      has_run_first_use: false
     }
   }
 }

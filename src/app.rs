@@ -1,14 +1,17 @@
+use super::panels::{
+  AboutPanel, DevicesPanel, FirstUsePanel, LogPanel, ServerStatusPanel, SettingsPanel,
+};
 use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
+use std::time::SystemTime;
+use time::OffsetDateTime;
+use tracing::{info, warn};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{prelude::*, EnvFilter};
-use tracing::{info, warn};
-use super::panels::{ServerStatusPanel, SettingsPanel, LogPanel, DevicesPanel, AboutPanel};
-use time::OffsetDateTime;
-use std::time::SystemTime;
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
+  FirstUsePanel,
   ServerStatus,
   Devices,
   Settings,
@@ -23,7 +26,7 @@ pub struct IntifaceDesktopApp {
   current_screen: AppScreens,
   core: AppCore,
   _logging_guard: tracing_appender::non_blocking::WorkerGuard,
-  _sentry_guard: Option<sentry::ClientInitGuard>
+  _sentry_guard: Option<sentry::ClientInitGuard>,
 }
 
 fn setup_logging() -> WorkerGuard {
@@ -37,13 +40,16 @@ fn setup_logging() -> WorkerGuard {
     .unwrap();
 
   let dt: OffsetDateTime = SystemTime::now().into();
-  let format_str = time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
+  let format_str =
+    time::format_description::parse("[year]-[month]-[day]-[hour]-[minute]-[second]").unwrap();
 
-  let file_appender = tracing_appender::rolling::never(super::core::log_path(), format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()));
+  let file_appender = tracing_appender::rolling::never(
+    super::core::log_path(),
+    format!("intiface-desktop-{}.log", dt.format(&format_str).unwrap()),
+  );
   let (non_blocking, logging_guard) = tracing_appender::non_blocking(file_appender);
 
-  let fmt_sub = tracing_subscriber::fmt::layer()
-    .with_writer(non_blocking);
+  let fmt_sub = tracing_subscriber::fmt::layer().with_writer(non_blocking);
 
   tracing_subscriber::registry()
     .with(fmt_sub)
@@ -54,7 +60,7 @@ fn setup_logging() -> WorkerGuard {
     .init();
 
   let paths = std::fs::read_dir(super::core::log_path()).unwrap();
-  let mut logs = vec!();
+  let mut logs = vec![];
   for path in paths {
     let p = path.unwrap();
     if p.file_name().into_string().unwrap().contains(".log") {
@@ -75,12 +81,15 @@ impl Default for IntifaceDesktopApp {
     if !super::core::user_config_path().exists() {
       // If we don't, create it and add default files.
       std::fs::create_dir_all(super::core::user_config_path());
-      save_config_file(&serde_json::to_string(&super::core::IntifaceConfiguration::default()).unwrap()).unwrap();
+      save_config_file(
+        &serde_json::to_string(&super::core::IntifaceConfiguration::default()).unwrap(),
+      )
+      .unwrap();
       super::core::UserDeviceConfigManager::default().save_user_config();
     }
 
     // Now that we at least have a directory to store logs in, set up logging.
-    let _logging_guard = setup_logging();    
+    let _logging_guard = setup_logging();
 
     // See if we have an engine.
     if !super::core::engine_file_path().exists() {
@@ -103,13 +112,18 @@ impl Default for IntifaceDesktopApp {
       }
     };
 
-    const API_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/sentry_api_key.txt"));
+    //const API_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/sentry_api_key.txt"));
+    const API_KEY: &str =
+      "https://ef3893f409824091806a79fcaa3dbf37@o78478.ingest.sentry.io/6078647";
     let _sentry_guard = if core.config.crash_reporting() && !API_KEY.is_empty() {
       info!("Crash reporting activated.");
-      Some(sentry::init((API_KEY, sentry::ClientOptions {
-        release: sentry::release_name!(),
-        ..Default::default()
-      })))
+      Some(sentry::init((
+        API_KEY,
+        sentry::ClientOptions {
+          release: sentry::release_name!(),
+          ..Default::default()
+        },
+      )))
     } else {
       warn!("Crash reporting not activated.");
       if API_KEY.is_empty() {
@@ -118,15 +132,19 @@ impl Default for IntifaceDesktopApp {
       None
     };
     info!("App created successfully.");
+    let current_screen = if core.config.has_run_first_use() {
+      AppScreens::ServerStatus
+    } else {
+      AppScreens::FirstUsePanel
+    };
     Self {
-      current_screen: AppScreens::ServerStatus,
+      current_screen,
       core,
       _logging_guard,
-      _sentry_guard
+      _sentry_guard,
     }
   }
 }
-
 
 impl epi::App for IntifaceDesktopApp {
   fn name(&self) -> &str {
@@ -171,7 +189,6 @@ impl epi::App for IntifaceDesktopApp {
       });
     });
 
-
     /*
     egui::TopBottomPanel::bottom("bottom_panel").resizable(true).default_height(40.0).show(ctx, |ui| {
       // The top panel is often a good place for a menu bar:
@@ -179,39 +196,49 @@ impl epi::App for IntifaceDesktopApp {
         ui.add(LogPanel);
       });
     });
-    */  
+    */
     if let Some(d) = core.modal_manager.get_modal_dialog() {
       egui::CentralPanel::default().show(ctx, |ui| {
-        ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::TopDown), |ui| {
-          ui.set_max_height(ui.available_height() * 0.25);
-          ui.set_max_width(ui.available_width() * 0.5);
-          d.render(core, ui);
-        });
+        ui.with_layout(
+          egui::Layout::centered_and_justified(egui::Direction::TopDown),
+          |ui| {
+            ui.set_max_height(ui.available_height() * 0.25);
+            ui.set_max_width(ui.available_width() * 0.5);
+            d.render(core, ui);
+          },
+        );
       });
     } else {
-      egui::SidePanel::left("side_panel").show(ctx, |ui| {
-        ui.heading("Intiface Desktop v41");
+      if *current_screen != AppScreens::FirstUsePanel {
+        egui::SidePanel::left("side_panel").show(ctx, |ui| {
+          ui.heading("Intiface Desktop v41");
 
-        ui.vertical(|ui| {
-          ui.selectable_value(current_screen, AppScreens::ServerStatus, "Server Status");
-          ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
-          ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
-          ui.selectable_value(current_screen, AppScreens::Log, "Log");
-          ui.selectable_value(current_screen, AppScreens::About, "Help/About");
+          ui.vertical(|ui| {
+            ui.selectable_value(current_screen, AppScreens::ServerStatus, "Server Status");
+            ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
+            ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
+            ui.selectable_value(current_screen, AppScreens::Log, "Log");
+            ui.selectable_value(current_screen, AppScreens::About, "Help/About");
+          });
+
+          egui::warn_if_debug_build(ui);
         });
-
-        egui::warn_if_debug_build(ui);
-      });
+      } else if core.config.has_run_first_use() {
+        *current_screen = AppScreens::ServerStatus;
+      }
 
       egui::CentralPanel::default().show(ctx, |ui| {
-        egui::ScrollArea::vertical().id_source("main_panel").show(ui, |ui| match current_screen {
-          AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
-          AppScreens::Devices => DevicesPanel::default().update(core, ui),
-          AppScreens::Settings => SettingsPanel::default().update(core, ui),
-          AppScreens::About => AboutPanel::default().update(core, ui),
-          AppScreens::Log => LogPanel::default().update(ui),
-          _ => {}
-        });
+        egui::ScrollArea::vertical()
+          .id_source("main_panel")
+          .show(ui, |ui| match current_screen {
+            AppScreens::FirstUsePanel => FirstUsePanel::default().update(core, ui),
+            AppScreens::ServerStatus => ServerStatusPanel::default().update(core, ui),
+            AppScreens::Devices => DevicesPanel::default().update(core, ui),
+            AppScreens::Settings => SettingsPanel::default().update(core, ui),
+            AppScreens::About => AboutPanel::default().update(core, ui),
+            AppScreens::Log => LogPanel::default().update(ui),
+            _ => {}
+          });
       });
     }
   }
