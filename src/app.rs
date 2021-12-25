@@ -217,13 +217,13 @@ impl epi::App for IntifaceDesktopApp {
     } else {
       let mut available_minimized_width = 0f32;
       let mut available_minimized_height = 0f32;
-      egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+      egui::TopBottomPanel::top("top_panel").resizable(false).show(ctx, |ui| {
         ServerStatusPanel::default().update(core, ui);
         //available_minimized_width = ui.available_width
         available_minimized_height += ui.min_size().y;
       });
       let expanded = self.expanded.clone();
-      egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+      egui::TopBottomPanel::bottom("bottom_panel").frame(egui::Frame::none()).show(ctx, |ui| {
         ui.horizontal(|ui| {
           ui.with_layout(
             egui::Layout::centered_and_justified(egui::Direction::TopDown),
@@ -280,6 +280,6 @@ impl epi::App for IntifaceDesktopApp {
     }
 
     // Run continuously for now, see what this does to CPU.
-    //ctx.request_repaint();
+    ctx.request_repaint();
   }
 }
