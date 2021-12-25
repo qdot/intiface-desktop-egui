@@ -1,5 +1,5 @@
 use super::panels::{
-  AboutPanel, DevicesPanel, FirstUsePanel, LogPanel, ServerStatusPanel, SettingsPanel,
+  AboutPanel, DeviceSettingsPanel, DeviceTestPanel, FirstUsePanel, LogPanel, ServerStatusPanel, SettingsPanel,
 };
 use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
@@ -12,7 +12,8 @@ use tracing_subscriber::{prelude::*, EnvFilter};
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
-  Devices,
+  DeviceSettings,
+  DeviceTest,
   Settings,
   Log,
   About,
@@ -134,7 +135,7 @@ impl Default for IntifaceDesktopApp {
     };
     info!("App created successfully.");
     Self {
-      current_screen: AppScreens::Devices,
+      current_screen: AppScreens::DeviceSettings,
       core,
       expanded: Rc::new(Cell::new(false)),
       _logging_guard,
@@ -241,9 +242,10 @@ impl epi::App for IntifaceDesktopApp {
       if core.config.show_extended_ui() {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
           ui.vertical(|ui| {
-            ui.selectable_value(current_screen, AppScreens::Devices, "Devices");
-            ui.selectable_value(current_screen, AppScreens::Settings, "Settings");
-            ui.selectable_value(current_screen, AppScreens::Log, "Log");
+            ui.selectable_value(current_screen, AppScreens::DeviceSettings, "Device Settings");
+            ui.selectable_value(current_screen, AppScreens::DeviceTest, "Device Test");
+            ui.selectable_value(current_screen, AppScreens::Settings, "App Settings");
+            ui.selectable_value(current_screen, AppScreens::Log, "App Log");
             ui.selectable_value(current_screen, AppScreens::About, "Help/About");
           });
           available_minimized_height += ui.min_size().y;
@@ -254,11 +256,11 @@ impl epi::App for IntifaceDesktopApp {
             .show(ui, |ui| {
               ui.set_min_width(ui.available_width());
               match current_screen {
-                AppScreens::Devices => DevicesPanel::default().update(core, ui),
+                AppScreens::DeviceSettings => DeviceSettingsPanel::default().update(core, ui),
+                AppScreens::DeviceTest => DeviceTestPanel::default().update(core, ui),
                 AppScreens::Settings => SettingsPanel::default().update(core, ui),
                 AppScreens::About => AboutPanel::default().update(core, ui),
                 AppScreens::Log => LogPanel::default().update(ui),
-                _ => {}
               };
             });
         });
