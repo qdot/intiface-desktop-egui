@@ -7,6 +7,7 @@ pub struct ServerStatusPanel {}
 impl ServerStatusPanel {
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
     egui::SidePanel::left("ServerStatusButtonPanel")
+      .resizable(false)
       .frame(Frame::none())
       .show_inside(ui, |ui| {
         ui.with_layout(
@@ -34,11 +35,11 @@ impl ServerStatusPanel {
                 core.process_manager.run(&core.config);
               }
             }
-          },
-        );
+          });
       });
 
     egui::SidePanel::right("ServerStatusIconPanel")
+      .resizable(false)
       .frame(Frame::none())
       .show_inside(ui, |ui| {
         ui.with_layout(
