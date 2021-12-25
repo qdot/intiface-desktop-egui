@@ -1,19 +1,19 @@
+use crate::core::AppCore;
 use eframe::egui::Ui;
 use std::sync::Arc;
-use crate::core::AppCore;
 
 pub trait ModalDialog: Sync + Send {
   fn render(&self, core: &mut AppCore, ui: &mut Ui);
 }
 
 struct OkModalDialog {
-  label: String
+  label: String,
 }
 
 impl OkModalDialog {
   pub fn new(label: &str) -> Self {
     Self {
-      label: label.to_owned()
+      label: label.to_owned(),
     }
   }
 }
@@ -28,16 +28,15 @@ impl ModalDialog for OkModalDialog {
         }
       });
     });
-
   }
 }
 
 #[derive(Default)]
 pub struct ModalManager {
-  modal: Option<Arc<Box<dyn ModalDialog>>>
+  modal: Option<Arc<Box<dyn ModalDialog>>>,
 }
 
-impl ModalManager{
+impl ModalManager {
   pub fn set_modal_dialog(&mut self, dialog: impl ModalDialog + 'static) {
     self.modal = Some(Arc::new(Box::new(dialog)));
   }

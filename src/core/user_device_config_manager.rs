@@ -1,9 +1,12 @@
-use std::collections::HashMap;
-use buttplug::{server::device_manager::DeviceUserConfig, util::device_configuration::{load_protocol_config_from_json, ProtocolConfiguration}};
 use super::util;
+use buttplug::{
+  server::device_manager::DeviceUserConfig,
+  util::device_configuration::{load_protocol_config_from_json, ProtocolConfiguration},
+};
+use std::collections::HashMap;
 
 pub struct UserDeviceConfigManager {
-  config: ProtocolConfiguration
+  config: ProtocolConfiguration,
 }
 
 impl Default for UserDeviceConfigManager {
@@ -15,9 +18,7 @@ impl Default for UserDeviceConfigManager {
     } else {
       ProtocolConfiguration::default()
     };
-    Self {
-      config
-    }
+    Self { config }
   }
 }
 
@@ -32,28 +33,44 @@ impl UserDeviceConfigManager {
   }
 
   pub fn add_allowed_device(&mut self, address: &str) {
-    let device_record = self.config.user_config.entry(address.to_owned()).or_default();
+    let device_record = self
+      .config
+      .user_config
+      .entry(address.to_owned())
+      .or_default();
     device_record.set_allow(Some(true));
   }
 
   pub fn remove_allowed_device(&mut self, address: &str) {
-    let device_record = self.config.user_config.entry(address.to_owned()).or_default();
+    let device_record = self
+      .config
+      .user_config
+      .entry(address.to_owned())
+      .or_default();
     device_record.set_allow(None);
     self.cleanup();
   }
 
   pub fn add_denied_device(&mut self, address: &str) {
-    let device_record = self.config.user_config.entry(address.to_owned()).or_default();
+    let device_record = self
+      .config
+      .user_config
+      .entry(address.to_owned())
+      .or_default();
     device_record.set_deny(Some(true));
   }
 
   pub fn remove_denied_device(&mut self, address: &str) {
-    let device_record = self.config.user_config.entry(address.to_owned()).or_default();
+    let device_record = self
+      .config
+      .user_config
+      .entry(address.to_owned())
+      .or_default();
     device_record.set_deny(None);
     self.cleanup();
   }
 
-  pub fn get_user_config(&self) -> &HashMap::<String, DeviceUserConfig> {
+  pub fn get_user_config(&self) -> &HashMap<String, DeviceUserConfig> {
     &self.config.user_config
   }
 

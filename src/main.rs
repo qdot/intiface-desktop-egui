@@ -26,7 +26,7 @@ async fn main() {
   native_options.icon_data = Some(IconData {
     rgba: rgba.to_vec(),
     width: image.width(),
-    height: image.height()
+    height: image.height(),
   });
   eframe::run_native(Box::new(app), native_options);
 }

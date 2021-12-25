@@ -70,69 +70,72 @@ impl LogPanel {
     });
 
     egui::CentralPanel::default().show(ui.ctx(), |ui| {
-      egui::ScrollArea::vertical().id_source("log_panel").show(ui, |ui| {
-        ui.set_min_width(ui.available_width());
-        let log_entries = LOG_ENTRIES.lock();
-        for (log_ix, log) in log_entries.iter().enumerate().rev() {
-          let filtered_out = match *log.meta.level() {
-            Level::TRACE => !state.trace,
-            Level::DEBUG => !state.debug,
-            Level::INFO => !state.info,
-            Level::WARN => !state.warn,
-            Level::ERROR => !state.error,
-          };
-          if filtered_out {
-            continue;
-          }
+      egui::ScrollArea::vertical()
+        .id_source("log_panel")
+        .show(ui, |ui| {
+          ui.set_min_width(ui.available_width());
+          let log_entries = LOG_ENTRIES.lock();
+          for (log_ix, log) in log_entries.iter().enumerate().rev() {
+            let filtered_out = match *log.meta.level() {
+              Level::TRACE => !state.trace,
+              Level::DEBUG => !state.debug,
+              Level::INFO => !state.info,
+              Level::WARN => !state.warn,
+              Level::ERROR => !state.error,
+            };
+            if filtered_out {
+              continue;
+            }
 
-          let log_id = id.with(log_ix);
-          match log.fields.get("message") {
-            Some(message) => egui::CollapsingHeader::new(
-              RichText::new(format!(
-                "[{}] [{}] {}",
+            let log_id = id.with(log_ix);
+            match log.fields.get("message") {
+              Some(message) => egui::CollapsingHeader::new(
+                RichText::new(format!(
+                  "[{}] [{}] {}",
+                  log.timestamp.format("%H:%M:%S%.3f"),
+                  log.meta.level(),
+                  message,
+                ))
+                .color(match *log.meta.level() {
+                  Level::DEBUG => Color32::BLUE,
+                  Level::ERROR => Color32::LIGHT_RED,
+                  Level::WARN => Color32::YELLOW,
+                  Level::INFO => Color32::GREEN,
+                  Level::TRACE => Color32::LIGHT_GRAY,
+                }),
+              ),
+              None => egui::CollapsingHeader::new(format!(
+                "[{}] [{}]",
                 log.timestamp.format("%H:%M:%S%.3f"),
                 log.meta.level(),
-                message,
-              ))
-              .color(match *log.meta.level() {
-                Level::DEBUG => Color32::BLUE,
-                Level::ERROR => Color32::LIGHT_RED,
-                Level::WARN => Color32::YELLOW,
-                Level::INFO => Color32::GREEN,
-                Level::TRACE => Color32::LIGHT_GRAY,
-              }),
-            ),
-            None => egui::CollapsingHeader::new(format!(
-              "[{}] [{}]",
-              log.timestamp.format("%H:%M:%S%.3f"),
-              log.meta.level(),
-            )),
-          }
-          .id_source(log_id)
-          .show(ui, |ui| {
-            egui::CollapsingHeader::new(format!("{} {}", log.meta.target(), log.meta.name(),))
-              .id_source(log_id.with(0usize))
-              .show(ui, |ui| {
-                log.show_fields(ui);
-              });
-
-            for (span_ix, span) in
-              std::iter::successors(log.span.as_deref(), |span| span.parent.as_deref()).enumerate()
-            {
-              let span_id = log_id.with(span_ix + 1);
-              egui::CollapsingHeader::new(format!(
-                "{}::{}",
-                span.meta.map_or("{unknown}", |meta| meta.target()),
-                span.meta.map_or("{unknown}", |meta| meta.name()),
-              ))
-              .id_source(span_id)
-              .show(ui, |ui| {
-                span.show_fields(ui);
-              });
+              )),
             }
-          });
-        }
-      })
+            .id_source(log_id)
+            .show(ui, |ui| {
+              egui::CollapsingHeader::new(format!("{} {}", log.meta.target(), log.meta.name(),))
+                .id_source(log_id.with(0usize))
+                .show(ui, |ui| {
+                  log.show_fields(ui);
+                });
+
+              for (span_ix, span) in
+                std::iter::successors(log.span.as_deref(), |span| span.parent.as_deref())
+                  .enumerate()
+              {
+                let span_id = log_id.with(span_ix + 1);
+                egui::CollapsingHeader::new(format!(
+                  "{}::{}",
+                  span.meta.map_or("{unknown}", |meta| meta.target()),
+                  span.meta.map_or("{unknown}", |meta| meta.name()),
+                ))
+                .id_source(span_id)
+                .show(ui, |ui| {
+                  span.show_fields(ui);
+                });
+              }
+            });
+          }
+        })
     });
     ui.memory().data.insert_persisted(id, state);
   }

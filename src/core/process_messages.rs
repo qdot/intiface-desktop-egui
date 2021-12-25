@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,14 +10,19 @@ pub enum EngineMessage {
   EngineStopped,
   ClientConnected(String),
   ClientDisconnected,
-  DeviceConnected { name: String, index: u32, address: String, display_name: String },
+  DeviceConnected {
+    name: String,
+    index: u32,
+    address: String,
+    display_name: String,
+  },
   DeviceDisconnected(u32),
-  ClientRejected(String)
+  ClientRejected(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IntifaceMessage {
-  Stop
+  Stop,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -29,7 +34,7 @@ pub struct EngineLogMessage {
   #[serde(default)]
   fields: EngineLogMessageFields,
   #[serde(default)]
-  target: String
+  target: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -93,7 +98,6 @@ impl EngineLogMessage {
           engine_module_path = ?self.fields.module_path,
           "{}", self.fields.message
         );
-
       }
     };
   }

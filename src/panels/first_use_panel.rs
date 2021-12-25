@@ -1,4 +1,4 @@
-use crate::core::{AppCore, save_config_file};
+use crate::core::{save_config_file, AppCore};
 use eframe::egui;
 
 #[derive(Default)]
@@ -14,7 +14,6 @@ enum FirstUseState {
 }
 
 impl FirstUsePanel {
-
   fn intro(&self, ui: &mut egui::Ui) {
     let mut clicked = false;
     ui.with_layout(
@@ -27,15 +26,17 @@ impl FirstUsePanel {
           if ui.button("Continue").clicked() {
             clicked = true;
           }
-        });    
+        });
       },
     );
     if clicked {
       let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
       ui.memory().data.remove::<FirstUseState>(id);
-      ui.memory().data.insert_temp(id, FirstUseState::DownloadCheck);
+      ui.memory()
+        .data
+        .insert_temp(id, FirstUseState::DownloadCheck);
     }
-}
+  }
 
   fn download_check(&self, core: &mut AppCore, ui: &mut egui::Ui) {
     // Check for engine existence
@@ -56,13 +57,15 @@ impl FirstUsePanel {
           if ui.button("Continue").clicked() {
             clicked = true;
           }
-        });    
+        });
       },
     );
     if clicked {
       let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
       ui.memory().data.remove::<FirstUseState>(id);
-      ui.memory().data.insert_temp(id, FirstUseState::DeviceWizard);
+      ui.memory()
+        .data
+        .insert_temp(id, FirstUseState::DeviceWizard);
     }
   }
 
@@ -78,13 +81,15 @@ impl FirstUsePanel {
           if ui.button("Continue").clicked() {
             clicked = true;
           }
-        });    
+        });
       },
     );
     if clicked {
       let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
       ui.memory().data.remove::<FirstUseState>(id);
-      ui.memory().data.insert_temp(id, FirstUseState::AllowCrashReporting);
+      ui.memory()
+        .data
+        .insert_temp(id, FirstUseState::AllowCrashReporting);
     }
   }
 
@@ -100,7 +105,7 @@ impl FirstUsePanel {
           if ui.button("Continue").clicked() {
             clicked = true;
           }
-        });    
+        });
       },
     );
     if clicked {
@@ -122,7 +127,7 @@ impl FirstUsePanel {
           if ui.button("Continue").clicked() {
             clicked = true;
           }
-        });    
+        });
       },
     );
     if clicked {
@@ -135,7 +140,11 @@ impl FirstUsePanel {
 
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
     let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-    let panel_state = ui.memory().data.get_temp_mut_or(id, FirstUseState::Intro).clone();
+    let panel_state = ui
+      .memory()
+      .data
+      .get_temp_mut_or(id, FirstUseState::Intro)
+      .clone();
     match panel_state {
       FirstUseState::Intro => self.intro(ui),
       FirstUseState::DownloadCheck => self.download_check(core, ui),

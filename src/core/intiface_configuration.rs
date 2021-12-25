@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use getset::{Getters, Setters, MutGetters, CopyGetters};
+use getset::{CopyGetters, Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 
 fn default_tracing_level() -> String {

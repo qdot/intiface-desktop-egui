@@ -2,6 +2,7 @@ use super::{process_messages::*, util, IntifaceConfiguration};
 use dashmap::{DashMap, DashSet};
 use notify_rust::Notification;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use sentry::SentryFutureExt;
 use std::{
   io,
   sync::{
@@ -16,7 +17,6 @@ use tokio::net::unix::{UnixListener, UnixStream};
 use tokio::net::windows::named_pipe;
 use tokio::{io::Interest, process::Command, select, sync::mpsc};
 use tokio_util::sync::CancellationToken;
-use sentry::SentryFutureExt;
 
 #[derive(Clone, Debug)]
 pub struct ButtplugServerDevice {
@@ -84,7 +84,7 @@ async fn run_windows_named_pipe(
   process_ended_token: CancellationToken,
   client_name: Arc<DashSet<String>>,
   client_devices: Arc<DashMap<u32, ButtplugServerDevice>>,
-  show_notifications: bool
+  show_notifications: bool,
 ) {
   info!("Starting named pipe server at {}", pipe_name);
   let server = named_pipe::ServerOptions::new()
@@ -288,17 +288,20 @@ impl ProcessManager {
     self.process_stop_sender = Some(tx);
     let client_name = self.client_name.clone();
     let client_devices = self.client_devices.clone();
-    tokio::spawn(async move {
-      run_windows_named_pipe(
-        &pipe_name,
-        rx,
-        process_ended_token_child,
-        client_name,
-        client_devices,
-        show_notifications
-      )
-      .await;
-    }.bind_hub(sentry::Hub::current().clone()));
+    tokio::spawn(
+      async move {
+        run_windows_named_pipe(
+          &pipe_name,
+          rx,
+          process_ended_token_child,
+          client_name,
+          client_devices,
+          show_notifications,
+        )
+        .await;
+      }
+      .bind_hub(sentry::Hub::current().clone()),
+    );
 
     #[cfg(not(target_os = "windows"))]
     let command_result = Command::new(command_path)
@@ -317,18 +320,21 @@ impl ProcessManager {
         let process_running = self.process_running.clone();
         process_running.store(true, Ordering::SeqCst);
 
-        tokio::spawn(async move {
-          match child.wait().await {
-            Ok(status) => {
-              info!("Child process ended successfully.");
+        tokio::spawn(
+          async move {
+            match child.wait().await {
+              Ok(status) => {
+                info!("Child process ended successfully.");
+              }
+              Err(e) => {
+                error!("Child process ended with error.");
+              }
             }
-            Err(e) => {
-              error!("Child process ended with error.");
-            }
+            process_running.store(false, Ordering::SeqCst);
+            process_ended_token.cancel();
           }
-          process_running.store(false, Ordering::SeqCst);
-          process_ended_token.cancel();
-        }.bind_hub(sentry::Hub::current().clone()));
+          .bind_hub(sentry::Hub::current().clone()),
+        );
         Ok(())
       }
       Err(err) => Err(ProcessError::ProcessStartupError(err.to_string())),

@@ -35,7 +35,8 @@ impl ServerStatusPanel {
                 core.process_manager.run(&core.config);
               }
             }
-          });
+          },
+        );
       });
 
     egui::SidePanel::right("ServerStatusIconPanel")
@@ -112,7 +113,11 @@ impl ServerStatusPanel {
       available_height = ui.min_size().y;
     });
     let id = ui.make_persistent_id("ServerStatusPanel::Height");
-    let height = ui.memory().data.get_temp_mut_or_insert_with(id, || available_height + 20f32).clone();
+    let height = ui
+      .memory()
+      .data
+      .get_temp_mut_or_insert_with(id, || available_height + 20f32)
+      .clone();
     ui.set_min_height(height);
   }
 }

@@ -1,5 +1,11 @@
 use super::panels::{
-  AboutPanel, DeviceSettingsPanel, DeviceTestPanel, FirstUsePanel, LogPanel, ServerStatusPanel, SettingsPanel,
+  AboutPanel,
+  DeviceSettingsPanel,
+  DeviceTestPanel,
+  FirstUsePanel,
+  LogPanel,
+  ServerStatusPanel,
+  SettingsPanel,
 };
 use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
@@ -217,36 +223,44 @@ impl epi::App for IntifaceDesktopApp {
     } else {
       let mut available_minimized_width = 0f32;
       let mut available_minimized_height = 0f32;
-      egui::TopBottomPanel::top("top_panel").resizable(false).show(ctx, |ui| {
-        ServerStatusPanel::default().update(core, ui);
-        //available_minimized_width = ui.available_width
-        available_minimized_height += ui.min_size().y;
-      });
-      let expanded = self.expanded.clone();
-      egui::TopBottomPanel::bottom("bottom_panel").frame(egui::Frame::none()).show(ctx, |ui| {
-        ui.horizontal(|ui| {
-          ui.with_layout(
-            egui::Layout::centered_and_justified(egui::Direction::TopDown),
-            |ui| {
-              if !core.config.show_extended_ui() {
-                if ui.button("⏷").clicked() {
-                  expanded.set(true);
-                  *core.config.show_extended_ui_mut() = true;
-                }
-              } else {
-                if ui.button("⏶").clicked() {
-                  *core.config.show_extended_ui_mut() = false;
-                }
-              }
-            },
-          );
+      egui::TopBottomPanel::top("top_panel")
+        .resizable(false)
+        .show(ctx, |ui| {
+          ServerStatusPanel::default().update(core, ui);
+          //available_minimized_width = ui.available_width
+          available_minimized_height += ui.min_size().y;
         });
-        available_minimized_height += ui.min_size().y;
-      });
+      let expanded = self.expanded.clone();
+      egui::TopBottomPanel::bottom("bottom_panel")
+        .frame(egui::Frame::none())
+        .show(ctx, |ui| {
+          ui.horizontal(|ui| {
+            ui.with_layout(
+              egui::Layout::centered_and_justified(egui::Direction::TopDown),
+              |ui| {
+                if !core.config.show_extended_ui() {
+                  if ui.button("⏷").clicked() {
+                    expanded.set(true);
+                    *core.config.show_extended_ui_mut() = true;
+                  }
+                } else {
+                  if ui.button("⏶").clicked() {
+                    *core.config.show_extended_ui_mut() = false;
+                  }
+                }
+              },
+            );
+          });
+          available_minimized_height += ui.min_size().y;
+        });
       if core.config.show_extended_ui() {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
           ui.vertical(|ui| {
-            ui.selectable_value(current_screen, AppScreens::DeviceSettings, "Device Settings");
+            ui.selectable_value(
+              current_screen,
+              AppScreens::DeviceSettings,
+              "Device Settings",
+            );
             ui.selectable_value(current_screen, AppScreens::DeviceTest, "Device Test");
             ui.selectable_value(current_screen, AppScreens::Settings, "App Settings");
             ui.selectable_value(current_screen, AppScreens::Log, "App Log");

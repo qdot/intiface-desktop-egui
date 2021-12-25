@@ -1,13 +1,16 @@
+use super::{util, IntifaceConfiguration};
 use buttplug::util::device_configuration::load_protocol_config_from_json;
+use sentry::SentryFutureExt;
 use std::sync::{
   atomic::{AtomicBool, AtomicU32, Ordering},
   Arc,
 };
-use std::{fs::File, io::{self,copy}};
+use std::{
+  fs::File,
+  io::{self, copy},
+};
 use thiserror::Error;
 use tracing::{error, info};
-use super::{util, IntifaceConfiguration};
-use sentry::SentryFutureExt;
 
 #[cfg(debug_assertions)]
 const BUTTPLUG_REPO_OWNER: &str = "qdot";
@@ -48,13 +51,20 @@ impl UpdateManager {
   pub fn check_for_updates(&self, config: &IntifaceConfiguration) {
     let is_updating = self.is_updating.clone();
     let engine_version = config.current_engine_version().clone();
-    let device_check_fut = UpdateManager::check_for_device_file_update(self.needs_device_file_update.clone(), self.latest_device_file_version.clone());
-    let engine_check_fut = UpdateManager::check_for_engine_update(engine_version, self.needs_engine_update.clone(), self.latest_engine_version.clone());
+    let device_check_fut = UpdateManager::check_for_device_file_update(
+      self.needs_device_file_update.clone(),
+      self.latest_device_file_version.clone(),
+    );
+    let engine_check_fut = UpdateManager::check_for_engine_update(
+      engine_version,
+      self.needs_engine_update.clone(),
+      self.latest_engine_version.clone(),
+    );
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
       tokio::join!(
-          async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
-          async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone())
+        async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
+        async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone())
       );
       is_updating.store(false, Ordering::SeqCst);
     });
@@ -86,7 +96,10 @@ impl UpdateManager {
     self.is_updating.load(Ordering::SeqCst)
   }
 
-  async fn check_for_device_file_update(needs_device_file_update: Arc<AtomicBool>, latest_device_file_version: Arc<AtomicU32>) {
+  async fn check_for_device_file_update(
+    needs_device_file_update: Arc<AtomicBool>,
+    latest_device_file_version: Arc<AtomicU32>,
+  ) {
     if !util::device_config_file_path().exists() {
       info!("No device configuration file found, prompting for update.");
       needs_device_file_update.store(true, Ordering::SeqCst);
@@ -123,7 +136,10 @@ impl UpdateManager {
       .parse::<u32>()
       .unwrap();
     //.map_err(|e| UpdateError::InvalidData(e.to_string()))?;
-    info!("Local device file version: {} - Remote device file Version: {}", device_config.version, version);
+    info!(
+      "Local device file version: {} - Remote device file Version: {}",
+      device_config.version, version
+    );
     latest_device_file_version.store(version, Ordering::SeqCst);
     needs_device_file_update.store(version > device_config.version, Ordering::SeqCst);
   }
@@ -155,7 +171,10 @@ impl UpdateManager {
       .await
       .map_err(|e| UpdateError::GithubError(e.to_string()))?;
     let current_version_number = release.tag_name[1..].parse::<u32>().unwrap();
-    info!("Local engine version: {} - Remote Engine Version: {}", engine_version, current_version_number);
+    info!(
+      "Local engine version: {} - Remote Engine Version: {}",
+      engine_version, current_version_number
+    );
     latest_engine_version.store(current_version_number, Ordering::SeqCst);
     needs_engine_update.store(current_version_number != engine_version, Ordering::SeqCst);
     Ok(())
@@ -169,7 +188,8 @@ impl UpdateManager {
     copy(&mut content.as_bytes(), &mut dest).unwrap();
   }
 
-  pub async fn download_application_update(&self, config: &IntifaceConfiguration) {}
+  pub async fn download_application_update(&self, config: &IntifaceConfiguration) {
+  }
 
   async fn download_engine_update() {
     #[cfg(target_os = "windows")]
@@ -190,9 +210,17 @@ impl UpdateManager {
 
     for asset in release.assets {
       if asset.name.starts_with(&release_name) {
-        info!("Found release asset {} for version {}", asset.name, release.tag_name);
+        info!(
+          "Found release asset {} for version {}",
+          asset.name, release.tag_name
+        );
         info!("Getting {}", asset.browser_download_url);
-        let file_bytes = reqwest::get(asset.browser_download_url).await.unwrap().bytes().await.unwrap();
+        let file_bytes = reqwest::get(asset.browser_download_url)
+          .await
+          .unwrap()
+          .bytes()
+          .await
+          .unwrap();
         let reader = std::io::Cursor::new(&file_bytes);
         let mut files = zip::ZipArchive::new(reader).unwrap();
         for file_idx in 0..files.len() {
@@ -202,10 +230,16 @@ impl UpdateManager {
           };
           let extension = file.enclosed_name().unwrap().extension();
           if extension.is_some() && extension.unwrap() == "md" {
-            info!("Skipping extracting file {} from zip...", file.enclosed_name().unwrap().display());
+            info!(
+              "Skipping extracting file {} from zip...",
+              file.enclosed_name().unwrap().display()
+            );
             continue;
           }
-          info!("Extracting file {} from zip...", file.enclosed_name().unwrap().display());
+          info!(
+            "Extracting file {} from zip...",
+            file.enclosed_name().unwrap().display()
+          );
           let final_out_path = util::engine_file_path();
           let mut outfile = File::create(&final_out_path).unwrap();
           io::copy(&mut file, &mut outfile).unwrap();
@@ -217,12 +251,14 @@ impl UpdateManager {
   }
 
   pub fn update_config(&self, config: &mut IntifaceConfiguration) {
-    *config.current_device_file_version_mut() = self.latest_device_file_version.load(Ordering::SeqCst);
+    *config.current_device_file_version_mut() =
+      self.latest_device_file_version.load(Ordering::SeqCst);
     *config.current_engine_version_mut() = self.latest_engine_version.load(Ordering::SeqCst);
     super::save_config_file(&serde_json::to_string(&config).unwrap()).unwrap();
   }
 
-  pub async fn install_application(&self, config: &IntifaceConfiguration) {}
+  pub async fn install_application(&self, config: &IntifaceConfiguration) {
+  }
 }
 #[cfg(test)]
 mod test {

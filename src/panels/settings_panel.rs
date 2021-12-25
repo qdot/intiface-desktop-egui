@@ -24,7 +24,7 @@ impl ModalDialog for ResetIntifaceModalDialog {
 
 #[derive(Default, Debug)]
 pub struct UpdateDialog {
-  has_updated: AtomicBool
+  has_updated: AtomicBool,
 }
 
 impl ModalDialog for UpdateDialog {
