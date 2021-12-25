@@ -146,7 +146,11 @@ impl Default for IntifaceDesktopApp {
 
 impl epi::App for IntifaceDesktopApp {
   fn name(&self) -> &str {
-    "Intiface Desktop"
+    #[cfg(debug_assertions)]
+    return "Intiface Desktop - DEBUG BUILD";
+
+    #[cfg(not(debug_assertions))]
+    return "Intiface Desktop";
   }
 
   /// Called by the framework to load old app state (if any).
