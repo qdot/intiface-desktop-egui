@@ -8,6 +8,8 @@ impl AboutPanel {
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
       ui.heading("Intiface Desktop");
+      ui.label(format!("egui Edition -  Version {} (git {})", env!("VERGEN_GIT_SEMVER"), env!("VERGEN_GIT_SHA_SHORT")));
+      ui.label(format!("Built: {}", env!("VERGEN_BUILD_TIMESTAMP")));
       ui.label("Copyright Nonpolynomial, 2017-2021");
       ui.label("Intiface is a registered trademark for Nonpolynomial");
       ui.separator();
