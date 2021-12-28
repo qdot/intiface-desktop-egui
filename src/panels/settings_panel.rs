@@ -72,10 +72,12 @@ impl SettingsPanel {
         ui.horizontal(|ui| {
           if !core.update_manager.is_updating() {
             if core.update_manager.needs_updates() {
+              /*
               if ui.button("Get Updates").clicked() {
                 core.update_manager.get_updates();
                 core.modal_manager.set_modal_dialog(UpdateDialog::default());
               }
+              */
             }
             if ui.button("Check For Updates").clicked() {
               core.update_manager.check_for_updates(&core.config);

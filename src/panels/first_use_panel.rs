@@ -74,10 +74,11 @@ impl FirstUsePanel {
             } else {
               ui.label(RichText::new("You will need to get updates to run Intiface Desktop, otherwise the program will not work.").strong());
             }
-  
+            /*
             if ui.button("Get Updates").clicked() {
               core.update_manager.check_for_and_get_updates();
             }
+            */
   
             if ui.button("Continue").clicked() {
               clicked = true;
