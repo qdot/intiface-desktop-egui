@@ -37,7 +37,7 @@ Source: "Readme.md"; DestDir: "{app}"; DestName: "Readme.txt"
 Source: "LICENSE"; DestDir: "{app}"; DestName: "License.txt"
 
 [Icons]
-Name: "{group}\Intiface Desktop"; Filename: "{app}\intiface-desktop.exe"
+Name: "{userprograms}\Intiface Desktop Rust"; Filename: "{app}\intiface-desktop.exe"
 
 // [Run]
 // Filename: "{app}\Readme.txt"; Description: "View the README file"; Flags: postinstall shellexec unchecked
