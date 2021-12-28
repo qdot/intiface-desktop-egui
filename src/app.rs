@@ -283,7 +283,6 @@ impl epi::App for IntifaceDesktopApp {
             });
         });
         if expanded.get() {
-          info!("Resetting window height");
           expanded.set(false);
 
           frame.set_window_size(egui::vec2(500f32, available_minimized_height + 30f32));

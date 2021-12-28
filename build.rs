@@ -6,8 +6,17 @@ use std::{
   path::Path,
 };
 use vergen::{vergen, Config, ShaKind};
+#[cfg(windows)] use winres::WindowsResource;
+
 
 fn main() -> Result<()> {
+  #[cfg(windows)] {
+    WindowsResource::new()
+        // This path can be absolute, or relative to your crate root.
+        .set_icon("icons/intiface-desktop-logo.ico")
+        .compile()?;
+  }
+
   let out_dir = env::var("OUT_DIR")?;
   let dest_path = Path::new(&out_dir).join("sentry_api_key.txt");
   let mut f = BufWriter::new(File::create(&dest_path)?);

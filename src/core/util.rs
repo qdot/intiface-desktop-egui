@@ -49,17 +49,24 @@ pub fn user_device_config_file_path() -> PathBuf {
   dir
 }
 
-#[cfg(not(debug_assertions))]
-pub fn engine_file_path() -> PathBuf {
+//#[cfg(not(debug_assertions))]
+pub fn engine_path() -> PathBuf {
   let mut dir = app_path();
   dir.push("engine");
-  dir.push(EXECUTABLE_NAME);
   dir
 }
 
+//#[cfg(not(debug_assertions))]
+pub fn engine_file_path() -> PathBuf {
+  let mut dir = engine_path();
+  dir.push(EXECUTABLE_NAME);
+  dir
+}
+/*
 #[cfg(debug_assertions)]
 pub fn engine_file_path() -> PathBuf {
   let mut dir = PathBuf::from("c:\\Users\\qdot\\code\\intiface-cli-rs\\target\\debug");
   dir.push(EXECUTABLE_NAME);
   dir
 }
+*/

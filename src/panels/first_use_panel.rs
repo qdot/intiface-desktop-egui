@@ -1,5 +1,5 @@
-use crate::core::{save_config_file, AppCore};
-use eframe::egui;
+use crate::core::{device_config_file_path, engine_file_path, save_config_file, AppCore};
+use eframe::egui::{self, RichText};
 
 #[derive(Default)]
 pub struct FirstUsePanel {}
@@ -40,8 +40,10 @@ impl FirstUsePanel {
 
   fn download_check(&self, core: &mut AppCore, ui: &mut egui::Ui) {
     // Check for engine existence
+    let engine_exists = engine_file_path().exists();
 
     // Check for device file existence
+    let device_file_exists = device_config_file_path().exists();
 
     // Check for updates
 
@@ -53,9 +55,35 @@ impl FirstUsePanel {
         ui.set_max_height(ui.available_height() * 0.80);
         ui.set_max_width(ui.available_width() * 0.80);
         ui.vertical(|ui| {
-          ui.label("Now doing download check");
-          if ui.button("Continue").clicked() {
-            clicked = true;
+
+          if !core.update_manager.is_updating() {
+            ui.label("Now doing download check");
+            if engine_exists {
+              ui.label("- Engine Exists");
+            } else {
+              ui.label("- Engine Download Needed");
+            }
+            if device_file_exists {
+              ui.label("- Device File Exists");
+            } else {
+              ui.label("- Device File Download Needed");
+            }
+  
+            if engine_exists {
+              ui.label(RichText::new("You should be able to run Intiface Desktop without updates.").strong());
+            } else {
+              ui.label(RichText::new("You will need to get updates to run Intiface Desktop, otherwise the program will not work.").strong());
+            }
+  
+            if ui.button("Get Updates").clicked() {
+              core.update_manager.check_for_and_get_updates();
+            }
+  
+            if ui.button("Continue").clicked() {
+              clicked = true;
+            }
+          } else {
+            ui.label("Running updates, please wait a moment.");
           }
         });
       },

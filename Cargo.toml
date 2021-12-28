@@ -55,6 +55,9 @@ anyhow = "1.0.52"
 default = []
 persistence = ["eframe/persistence"] # Enable if you want to persist app state on shutdown
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
 [profile.release]
 opt-level = 2 # fast and small wasm
 

@@ -13,10 +13,6 @@ use thiserror::Error;
 use tracing::{error, info};
 
 #[cfg(debug_assertions)]
-const BUTTPLUG_REPO_OWNER: &str = "qdot";
-#[cfg(not(debug_assertions))]
-const BUTTPLUG_REPO_OWNER: &str = "buttplugio";
-#[cfg(debug_assertions)]
 const INTIFACE_REPO_OWNER: &str = "qdot";
 #[cfg(not(debug_assertions))]
 const INTIFACE_REPO_OWNER: &str = "intiface";
@@ -76,6 +72,36 @@ impl UpdateManager {
     let is_updating = self.is_updating.clone();
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
+      if needs_device_file_update.load(Ordering::SeqCst) {
+        UpdateManager::download_device_file_update().await;
+      }
+      if needs_engine_update.load(Ordering::SeqCst) {
+        UpdateManager::download_engine_update().await;
+      }
+      is_updating.store(false, Ordering::SeqCst);
+    });
+  }
+
+  pub fn check_for_and_get_updates(&self) {
+    let is_updating = self.is_updating.clone();
+    //let engine_version = config.current_engine_version().clone();
+    let device_check_fut = UpdateManager::check_for_device_file_update(
+      self.needs_device_file_update.clone(),
+      self.latest_device_file_version.clone(),
+    );
+    let engine_check_fut = UpdateManager::check_for_engine_update(
+      0,
+      self.needs_engine_update.clone(),
+      self.latest_engine_version.clone(),
+    );
+    let needs_device_file_update = self.needs_device_file_update.clone();
+    let needs_engine_update = self.needs_engine_update.clone();
+    tokio::spawn(async move {
+      is_updating.store(true, Ordering::SeqCst);
+      tokio::join!(
+        async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
+        async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone())
+      );
       if needs_device_file_update.load(Ordering::SeqCst) {
         UpdateManager::download_device_file_update().await;
       }
@@ -236,11 +262,15 @@ impl UpdateManager {
             );
             continue;
           }
-          info!(
-            "Extracting file {} from zip...",
-            file.enclosed_name().unwrap().display()
-          );
           let final_out_path = util::engine_file_path();
+          info!(
+            "Extracting file {} from zip to {:?}...",
+            file.enclosed_name().unwrap().display(),
+            final_out_path
+          );
+          if !super::engine_path().exists() {
+            std::fs::create_dir_all(super::engine_path());
+          }
           let mut outfile = File::create(&final_out_path).unwrap();
           io::copy(&mut file, &mut outfile).unwrap();
         }
@@ -258,40 +288,5 @@ impl UpdateManager {
   }
 
   pub async fn install_application(&self, config: &IntifaceConfiguration) {
-  }
-}
-#[cfg(test)]
-mod test {
-  use super::super::IntifaceConfiguration;
-  use super::*;
-
-  /*
-  #[test]
-  fn test_device_file_update() {
-    // Create the runtime
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    // Execute the future, blocking the current thread until completion
-    rt.block_on(async move {
-      let config = IntifaceConfiguration::default();
-      let manager = UpdateManager::default();
-      // Should always return true.
-      assert!(manager.check_for_device_file_update().await.unwrap());
-    })
-  }
-  */
-
-  #[test]
-  fn test_engine_update() {
-    // Create the runtime
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    // Execute the future, blocking the current thread until completion
-    rt.block_on(async move {
-      let config = IntifaceConfiguration::default();
-      let manager = UpdateManager::default();
-      // Should always return true.
-      //assert!(manager.check_for_engine_update(&config).await.unwrap());
-    })
   }
 }
