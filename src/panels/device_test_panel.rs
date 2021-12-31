@@ -17,9 +17,9 @@ pub struct DeviceTestPanel {}
 
 impl DeviceTestPanel {
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
-    if core.process_manager.is_running() {
-      let id = ui.make_persistent_id("DevicesPanel::ButtplugClient");
-      let maybe_client = ui.memory().data.get_temp::<Arc<ButtplugClient>>(id).clone();
+    let id = ui.make_persistent_id("DevicesPanel::ButtplugClient");
+    let maybe_client = ui.memory().data.get_temp::<Arc<ButtplugClient>>(id).clone();
+    if core.process_manager.is_running() && (core.process_manager.client_name().is_none() || maybe_client.is_some()) {
       if let Some(client) = maybe_client {
         if !client.connected() {
           ui.label("Connecting...");
@@ -141,9 +141,11 @@ impl DeviceTestPanel {
         }
       }
     } else {
-      ui.label("Intiface Server must be running in order to use Device Test panel.");
-      let id = ui.make_persistent_id("DevicesPanel::ButtplugClient");
-      let maybe_client = ui.memory().data.get_temp::<Arc<ButtplugClient>>(id).clone();
+      if core.process_manager.client_name().is_some() {
+        ui.label("Cannot connect Device Test panel while another client application is connected.");
+      } else {
+        ui.label("Intiface Server must be running in order to use Device Test panel.");
+      }
       if maybe_client.is_some() {
         ui.memory().data.remove::<Arc<ButtplugClient>>(id);
       }
