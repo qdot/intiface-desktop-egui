@@ -139,6 +139,11 @@ impl Default for IntifaceDesktopApp {
       }
       None
     };
+
+    if core.config.start_server_on_startup() {
+      core.process_manager.run(&core.config);
+    }
+    
     info!("App created successfully.");
     Self {
       current_screen: AppScreens::DeviceSettings,
