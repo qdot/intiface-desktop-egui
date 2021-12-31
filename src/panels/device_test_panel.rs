@@ -3,8 +3,7 @@ use buttplug::{
   client::{ButtplugClient, ButtplugClientEvent, RotateCommand, VibrateCommand},
   connector::{ButtplugRemoteClientConnector, ButtplugWebsocketClientTransport},
   core::messages::{
-    serializer::ButtplugClientJSONSerializer,
-    ButtplugCurrentSpecDeviceMessageType,
+    serializer::ButtplugClientJSONSerializer, ButtplugCurrentSpecDeviceMessageType,
   },
 };
 use eframe::egui;
@@ -22,17 +21,32 @@ impl DeviceTestPanel {
       let id = ui.make_persistent_id("DevicesPanel::ButtplugClient");
       let maybe_client = ui.memory().data.get_temp::<Arc<ButtplugClient>>(id).clone();
       if let Some(client) = maybe_client {
+        if !client.connected() {
+          ui.label("Connecting...");
+          return;
+        }
         ui.vertical(|ui| {
-          ui.label("Client connected.");
-          if ui.button("Scan for Devices").clicked() {
-            let client_clone = client.clone();
-            tokio::spawn(
-              async move {
-                client_clone.start_scanning().await;
-              }
-              .bind_hub(sentry::Hub::current().clone()),
-            );
-          }
+          ui.horizontal(|ui| {
+            if ui.button("Scan for Devices").clicked() {
+              let client_clone = client.clone();
+              tokio::spawn(
+                async move {
+                  client_clone.start_scanning().await;
+                }
+                .bind_hub(sentry::Hub::current().clone()),
+              );
+            }
+            if ui.button("Disconnect").clicked() {
+              let client_clone = client.clone();
+              tokio::spawn(
+                async move {
+                  client_clone.disconnect().await;
+                }
+                .bind_hub(sentry::Hub::current().clone()),
+              );
+              ui.memory().data.remove::<Arc<ButtplugClient>>(id);
+            }
+          });
           for device in client.devices() {
             ui.collapsing(format!("{}", device.name), |ui| {
               if device
