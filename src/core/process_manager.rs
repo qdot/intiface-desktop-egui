@@ -264,6 +264,10 @@ impl ProcessManager {
       args.push("--crash-reporting".to_owned());
     }
 
+    if config.allow_raw_messages() {
+      args.push("--allowraw".to_owned());
+    }
+
     args
   }
 

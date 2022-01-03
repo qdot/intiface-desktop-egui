@@ -67,6 +67,45 @@ impl SettingsPanel {
           "Desktop Notifications",
         );
         ui.checkbox(core.config.crash_reporting_mut(), "Crash Reporting");
+        ui.horizontal(|ui| {
+          ui.checkbox(
+            core.config.start_server_on_startup_mut(),
+            "Start Server When Intiface Desktop Launches",
+          );
+        });
+        ui.horizontal(|ui| {
+          ui.label("Server Name");
+          ui.text_edit_singleline(core.config.server_name_mut());
+        });
+        ui.horizontal(|ui| {
+          ui.label("Server Log Level");
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::ERROR.to_string(),
+            "Error",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::WARN.to_string(),
+            "Warn",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::INFO.to_string(),
+            "Info",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::DEBUG.to_string(),
+            "Debug",
+          );
+          ui.selectable_value(
+            core.config.server_log_level_mut(),
+            tracing::Level::TRACE.to_string(),
+            "Trace",
+          );
+        });
+        ui.checkbox(core.config.allow_raw_messages_mut(), "Allow Raw Messages (DANGEROUS, MOST LIKELY LEAVE THIS OFF)");
       });
       ui.collapsing("Versions and Updates", |ui| {
         ui.horizontal(|ui| {
@@ -108,46 +147,6 @@ impl SettingsPanel {
         });
       });
 
-      ui.collapsing("Server Process Settings", |ui| {
-        ui.horizontal(|ui| {
-          ui.checkbox(
-            core.config.start_server_on_startup_mut(),
-            "Start Server When Intiface Desktop Launches",
-          );
-        });
-        ui.horizontal(|ui| {
-          ui.label("Server Name");
-          ui.text_edit_singleline(core.config.server_name_mut());
-        });
-        ui.horizontal(|ui| {
-          ui.label("Server Log Level");
-          ui.selectable_value(
-            core.config.server_log_level_mut(),
-            tracing::Level::ERROR.to_string(),
-            "Error",
-          );
-          ui.selectable_value(
-            core.config.server_log_level_mut(),
-            tracing::Level::WARN.to_string(),
-            "Warn",
-          );
-          ui.selectable_value(
-            core.config.server_log_level_mut(),
-            tracing::Level::INFO.to_string(),
-            "Info",
-          );
-          ui.selectable_value(
-            core.config.server_log_level_mut(),
-            tracing::Level::DEBUG.to_string(),
-            "Debug",
-          );
-          ui.selectable_value(
-            core.config.server_log_level_mut(),
-            tracing::Level::TRACE.to_string(),
-            "Trace",
-          );
-        });
-      });
       ui.collapsing("Server Websocket Settings", |ui| {
         ui.horizontal(|ui| {
           ui.label("Websocket Port");

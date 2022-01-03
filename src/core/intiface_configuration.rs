@@ -90,6 +90,9 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(default)]
   show_extended_ui: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(default)]
+  allow_raw_messages: bool,
 }
 
 impl Default for IntifaceConfiguration {
@@ -118,10 +121,11 @@ impl Default for IntifaceConfiguration {
       with_lovense_serial_dongle: true,
       with_lovense_connect_service: false,
       with_xinput: true,
-      crash_reporting: false,
+      crash_reporting: true,
       show_notifications: true,
       has_run_first_use: false,
       show_extended_ui: false,
+      allow_raw_messages: false,
     }
   }
 }
