@@ -34,7 +34,6 @@ impl ModalDialog for UpdateDialog {
         ui.label("Updating, please wait...");
       } else {
         if !self.has_updated.load(Ordering::SeqCst) {
-          core.update_manager.update_config(&mut core.config);
           self.has_updated.store(true, Ordering::SeqCst);
         }
         ui.horizontal(|ui| {
@@ -60,6 +59,13 @@ impl SettingsPanel {
 
     let original_config = core.config.clone();
 
+    let open_updates = if core.config.force_open_updates() {
+      *core.config.force_open_updates_mut() = false;
+      Some(true) 
+    } else {
+      None
+    };
+
     ui.vertical(|ui| {
       ui.collapsing("General", |ui| {
         ui.checkbox(
@@ -67,6 +73,7 @@ impl SettingsPanel {
           "Desktop Notifications",
         );
         ui.checkbox(core.config.crash_reporting_mut(), "Crash Reporting");
+        ui.checkbox(core.config.check_for_updates_on_start_mut(), "Check for updates on startup");
         ui.horizontal(|ui| {
           ui.checkbox(
             core.config.start_server_on_startup_mut(),
@@ -107,19 +114,47 @@ impl SettingsPanel {
         });
         ui.checkbox(core.config.allow_raw_messages_mut(), "Allow Raw Messages (DANGEROUS, MOST LIKELY LEAVE THIS OFF)");
       });
-      ui.collapsing("Versions and Updates", |ui| {
+      egui::CollapsingHeader::new("Versions and Updates").open(open_updates).show(ui, |ui| {
         ui.horizontal(|ui| {
+          ui.label(egui::RichText::new("Intiface Desktop Version: ").strong());
+          ui.label(core.update_manager.current_application_version());
+        });
+        if core.update_manager.needs_application_update() {
+          ui.hyperlink_to(egui::RichText::new("Application Update Available - Click here to go to download site").color(egui::Color32::GOLD), "https://github.com/qdot/intiface-desktop-egui");
+        }
+        ui.horizontal(|ui| {
+          ui.label(egui::RichText::new("Intiface Engine Version: ").strong());
+          if let Some(engine_version) = core.update_manager.current_engine_version() {
+            ui.label(format!("{}", engine_version));
+          } else {
+            ui.label("Cannot identify engine version, update needed.");
+          }
+        });
+        if core.update_manager.needs_engine_update() {
+          ui.label(egui::RichText::new("Engine Update Available - Click Get Updates").color(egui::Color32::GOLD));
+        }
+        ui.horizontal(|ui| {
+          ui.label(egui::RichText::new("Device Config File Version: ").strong());
+          if let Some(device_config_file_version) = core.update_manager.current_device_config_file_version() {
+            ui.label(format!("{}", device_config_file_version));
+          } else {
+            ui.label("Cannot identify device config file version, update needed.");
+          }
+        });
+        if core.update_manager.needs_device_config_file_update() {
+          ui.label(egui::RichText::new("Device Config File Update Available - Click Get Updates").color(egui::Color32::GOLD));
+        }
+        ui.horizontal(|ui| {
+          
           if !core.update_manager.is_updating() {
             if core.update_manager.needs_updates() {
-              /*
               if ui.button("Get Updates").clicked() {
                 core.update_manager.get_updates();
                 core.modal_manager.set_modal_dialog(UpdateDialog::default());
               }
-              */
             }
             if ui.button("Check For Updates").clicked() {
-              core.update_manager.check_for_updates(&core.config);
+              core.update_manager.check_for_updates();
             }
           } else {
             ui.label("Waiting for update check to finish...");

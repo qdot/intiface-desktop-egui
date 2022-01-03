@@ -23,3 +23,12 @@ pub struct AppCore {
   pub user_device_config_manager: UserDeviceConfigManager,
   pub modal_manager: ModalManager,
 }
+
+impl AppCore {
+  pub fn new() -> Self {
+    Self {
+      update_manager: UpdateManager::new(),
+      .. Default::default()
+    }
+  }
+}

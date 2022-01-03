@@ -30,27 +30,12 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(default)]
   use_prerelease_engine: bool,
-  #[getset(get = "pub")]
-  #[serde(default)]
-  current_engine_version: u32,
-  #[getset(get_copy = "pub")]
-  #[serde(default)]
-  current_device_file_version: u32,
   #[getset(get_copy = "pub")]
   #[serde(default)]
   check_for_updates_on_start: bool,
   #[getset(get_copy = "pub")]
   #[serde(default)]
   has_run_setup: bool,
-  #[getset(get_copy = "pub")]
-  #[serde(skip)]
-  device_file_update_available: bool,
-  #[getset(get_copy = "pub")]
-  #[serde(skip)]
-  engine_update_available: bool,
-  #[getset(get_copy = "pub")]
-  #[serde(skip)]
-  application_update_available: bool,
   #[getset(get_copy = "pub")]
   #[serde(skip)]
   has_usable_engine_executable: bool,
@@ -93,6 +78,15 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(default)]
   allow_raw_messages: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(skip)]
+  has_error_message: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(skip)]
+  force_open_log: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(skip)]
+  force_open_updates: bool,
 }
 
 impl Default for IntifaceConfiguration {
@@ -105,13 +99,8 @@ impl Default for IntifaceConfiguration {
       websocket_server_insecure_port: 12345,
       server_log_level: tracing::Level::INFO.to_string(),
       use_prerelease_engine: false,
-      current_engine_version: 0,
-      current_device_file_version: 0,
       check_for_updates_on_start: true,
       has_run_setup: false,
-      device_file_update_available: false,
-      engine_update_available: false,
-      application_update_available: false,
       has_usable_engine_executable: false,
       start_server_on_startup: false,
       with_bluetooth_le: true,
@@ -126,6 +115,9 @@ impl Default for IntifaceConfiguration {
       has_run_first_use: false,
       show_extended_ui: false,
       allow_raw_messages: false,
+      has_error_message: false,
+      force_open_log: false,
+      force_open_updates: false,
     }
   }
 }

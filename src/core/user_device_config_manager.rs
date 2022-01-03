@@ -14,7 +14,7 @@ impl Default for UserDeviceConfigManager {
     let config = if util::user_device_config_file_path().exists() {
       // TODO This could fail if the file is invalid.
       let user_config_file = std::fs::read_to_string(util::user_device_config_file_path()).unwrap();
-      load_protocol_config_from_json(&user_config_file).unwrap()
+      load_protocol_config_from_json(&user_config_file, true).unwrap()
     } else {
       ProtocolConfiguration::default()
     };

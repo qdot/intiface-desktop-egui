@@ -5,7 +5,7 @@ use eframe::egui;
 pub struct AboutPanel {}
 
 impl AboutPanel {
-  pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
+  pub fn update(&mut self, _core: &mut AppCore, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
       ui.heading("Intiface Desktop");
       ui.label(format!("egui Edition -  Version {} (git {})", env!("VERGEN_GIT_SEMVER"), env!("VERGEN_GIT_SHA_SHORT")));

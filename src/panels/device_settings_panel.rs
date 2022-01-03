@@ -50,7 +50,7 @@ impl DeviceSettingsPanel {
           }
         });
       });
-      ui.collapsing("Add/Remove Device Configurations", |ui| {});
+      ui.collapsing("Add/Remove Device Configurations", |_ui| {});
     });
   }
 }

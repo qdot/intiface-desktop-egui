@@ -1,24 +1,28 @@
 use super::{util, IntifaceConfiguration};
 use buttplug::util::device_configuration::load_protocol_config_from_json;
 use sentry::SentryFutureExt;
-use std::sync::{
-  atomic::{AtomicBool, AtomicU32, Ordering},
-  Arc,
-};
 use std::{
+  sync::{
+    atomic::{AtomicBool, AtomicU32, Ordering},
+    Arc,
+  },
   fs::File,
+  error::Error,
   io::{self, copy},
 };
 use thiserror::Error;
 use tracing::{error, info};
+use std::sync::RwLock;
 
-#[cfg(debug_assertions)]
+//#[cfg(debug_assertions)]
 const INTIFACE_REPO_OWNER: &str = "qdot";
+/*
 #[cfg(not(debug_assertions))]
 const INTIFACE_REPO_OWNER: &str = "intiface";
+*/
 const INTIFACE_DESKTOP_REPO: &str = "intiface-desktop-egui";
 const INTIFACE_ENGINE_REPO: &str = "intiface-cli-rs";
-const PRERELEASE_TAG: &str = "420.69.666";
+// const PRERELEASE_TAG: &str = "420.69.666";
 const DEVICE_CONFIG_VERSION_URL: &str = "https://buttplug-rs-device-config.buttplug.io/version";
 const DEVICE_CONFIG_URL: &str = "https://buttplug-rs-device-config.buttplug.io";
 
@@ -34,119 +38,133 @@ pub enum UpdateError {
 
 #[derive(Default)]
 pub struct UpdateManager {
-  needs_device_file_update: Arc<AtomicBool>,
-  needs_engine_update: Arc<AtomicBool>,
-  needs_application_update: Arc<AtomicBool>,
   latest_engine_version: Arc<AtomicU32>,
   latest_device_file_version: Arc<AtomicU32>,
+  latest_application_version: Arc<RwLock<Option<String>>>,
+  current_application_version: String,
+  current_engine_version: Arc<RwLock<Option<u32>>>,
+  current_device_config_file_version: Arc<RwLock<Option<u32>>>,
   is_updating: Arc<AtomicBool>,
   has_errors: Arc<AtomicBool>,
 }
 
 impl UpdateManager {
-  pub fn check_for_updates(&self, config: &IntifaceConfiguration) {
+  pub fn new() -> Self {
+    let manager = Self {
+      current_application_version: format!("{}", env!("VERGEN_BUILD_SEMVER")),
+      ..Default::default()
+    };
+    UpdateManager::update_internal_versions(manager.current_engine_version.clone(), manager.current_device_config_file_version.clone());
+    manager
+  }
+
+  fn update_internal_versions(current_engine_version: Arc<RwLock<Option<u32>>>, current_device_config_file_version: Arc<RwLock<Option<u32>>>) {
+    if util::device_config_file_path().exists() {
+      // TODO This could fail if the file is invalid.
+      let user_config_file = std::fs::read_to_string(util::user_device_config_file_path()).unwrap();
+      let version = load_protocol_config_from_json(&user_config_file, true).unwrap().version;
+      info!("Device config file version: {}", version);
+      *current_device_config_file_version.write().unwrap() = Some(version)
+    } else {
+      info!("No device config file found");
+      *current_device_config_file_version.write().unwrap() = None;
+    }
+
+    if util::engine_file_path().exists() {
+      let version_bytes = std::process::Command::new(util::engine_file_path())
+        .args(["--serverversion"])
+        .output()
+        .expect("failed to execute process")
+        .stdout;      
+      let vstr = String::from_utf8(version_bytes).unwrap();
+      let version_strings: Vec<&str> = vstr.split(".").collect();
+      let version = u32::from_str_radix(version_strings[0], 10).unwrap();
+      *current_engine_version.write().unwrap() = Some(version);
+    } else {
+      *current_engine_version.write().unwrap() = None;
+    }
+  }
+
+  pub fn current_application_version(&self) -> &'_ str {
+    &self.current_application_version
+  }
+
+  pub fn current_engine_version(&self) -> Option<u32> {
+    self.current_engine_version.read().unwrap().clone()
+  }
+
+  pub fn current_device_config_file_version(&self) -> Option<u32> {
+    self.current_device_config_file_version.read().unwrap().clone()
+  }
+
+  pub fn check_for_updates(&self) {
     let is_updating = self.is_updating.clone();
-    let engine_version = config.current_engine_version().clone();
-    let device_check_fut = UpdateManager::check_for_device_file_update(
-      self.needs_device_file_update.clone(),
+
+    let device_check_fut = UpdateManager::get_latest_device_file_version(
       self.latest_device_file_version.clone(),
     );
-    let engine_check_fut = UpdateManager::check_for_engine_update(
-      engine_version,
-      self.needs_engine_update.clone(),
+    let engine_check_fut = UpdateManager::get_latest_engine_version(
       self.latest_engine_version.clone(),
+    );
+    let application_check_fut = UpdateManager::get_latest_application_version(
+      self.latest_application_version.clone(),
     );
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
       tokio::join!(
         async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
-        async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone())
+        async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
+        async move { application_check_fut.await }.bind_hub(sentry::Hub::current().clone())
       );
       is_updating.store(false, Ordering::SeqCst);
     });
   }
 
   pub fn get_updates(&self) {
-    let needs_device_file_update = self.needs_device_file_update.clone();
-    let needs_engine_update = self.needs_engine_update.clone();
     let is_updating = self.is_updating.clone();
+    let should_update_device_config_file = self.needs_device_config_file_update();
+    let should_update_engine = self.needs_engine_update();
+    let current_engine_version = self.current_engine_version.clone();
+    let current_device_config_file_version = self.current_device_config_file_version.clone();
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
-      if needs_device_file_update.load(Ordering::SeqCst) {
+      if should_update_device_config_file {
         UpdateManager::download_device_file_update().await;
       }
-      if needs_engine_update.load(Ordering::SeqCst) {
+      if should_update_engine {
         UpdateManager::download_engine_update().await;
       }
+      UpdateManager::update_internal_versions(current_engine_version, current_device_config_file_version);
       is_updating.store(false, Ordering::SeqCst);
     });
   }
 
-  pub fn check_for_and_get_updates(&self) {
-    let is_updating = self.is_updating.clone();
-    //let engine_version = config.current_engine_version().clone();
-    let device_check_fut = UpdateManager::check_for_device_file_update(
-      self.needs_device_file_update.clone(),
-      self.latest_device_file_version.clone(),
-    );
-    let engine_check_fut = UpdateManager::check_for_engine_update(
-      0,
-      self.needs_engine_update.clone(),
-      self.latest_engine_version.clone(),
-    );
-    let needs_device_file_update = self.needs_device_file_update.clone();
-    let needs_engine_update = self.needs_engine_update.clone();
-    tokio::spawn(async move {
-      is_updating.store(true, Ordering::SeqCst);
-      tokio::join!(
-        async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
-        async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone())
-      );
-      if needs_device_file_update.load(Ordering::SeqCst) {
-        UpdateManager::download_device_file_update().await;
-      }
-      if needs_engine_update.load(Ordering::SeqCst) {
-        UpdateManager::download_engine_update().await;
-      }
-      is_updating.store(false, Ordering::SeqCst);
-    });
+  pub fn needs_device_config_file_update(&self) -> bool {
+    let current_device_config_file_version = self.current_device_config_file_version.read().unwrap();
+    current_device_config_file_version.is_none() || self.latest_device_file_version.load(Ordering::SeqCst) != current_device_config_file_version.unwrap()
+  }
+
+  pub fn needs_engine_update(&self) -> bool {
+    let current_engine_version = self.current_engine_version.read().unwrap();
+    current_engine_version.is_none() || self.latest_engine_version.load(Ordering::SeqCst) != current_engine_version.unwrap()
+  }
+
+  pub fn needs_application_update(&self) -> bool {
+    let latest_application_version = self.latest_application_version.read().unwrap();
+    latest_application_version.is_some() && self.current_application_version != *latest_application_version.as_ref().unwrap()
   }
 
   pub fn needs_updates(&self) -> bool {
-    self.needs_application_update.load(Ordering::SeqCst)
-      || self.needs_device_file_update.load(Ordering::SeqCst)
-      || self.needs_engine_update.load(Ordering::SeqCst)
+    self.needs_device_config_file_update() || self.needs_engine_update() || self.needs_application_update()
   }
 
   pub fn is_updating(&self) -> bool {
     self.is_updating.load(Ordering::SeqCst)
   }
 
-  async fn check_for_device_file_update(
-    needs_device_file_update: Arc<AtomicBool>,
+  async fn get_latest_device_file_version(
     latest_device_file_version: Arc<AtomicU32>,
   ) {
-    if !util::device_config_file_path().exists() {
-      info!("No device configuration file found, prompting for update.");
-      needs_device_file_update.store(true, Ordering::SeqCst);
-      return;
-    }
-
-    let device_config_file = String::from_utf8(
-      tokio::fs::read(util::device_config_file_path())
-        .await
-        .unwrap(),
-    )
-    .unwrap();
-    let device_config = match load_protocol_config_from_json(&device_config_file) {
-      Ok(cfg) => cfg,
-      Err(e) => {
-        error!("{:?}", e);
-        needs_device_file_update.store(true, Ordering::SeqCst);
-        return;
-      }
-    };
-
     let version = reqwest::get(DEVICE_CONFIG_VERSION_URL)
       .await
       /*
@@ -162,32 +180,30 @@ impl UpdateManager {
       .parse::<u32>()
       .unwrap();
     //.map_err(|e| UpdateError::InvalidData(e.to_string()))?;
-    info!(
-      "Local device file version: {} - Remote device file Version: {}",
-      device_config.version, version
-    );
+    info!("Remote device file Version: {}", version);
     latest_device_file_version.store(version, Ordering::SeqCst);
-    needs_device_file_update.store(version > device_config.version, Ordering::SeqCst);
   }
 
-  async fn check_for_application_update(
-    &self,
-    config: &IntifaceConfiguration,
-  ) -> Result<bool, UpdateError> {
-    let release = octocrab::instance()
+  async fn get_latest_application_version(
+    latest_application_version: Arc<RwLock<Option<String>>>
+  ) {
+    match octocrab::instance()
       .repos(INTIFACE_REPO_OWNER, INTIFACE_DESKTOP_REPO)
       .releases()
       .get_latest()
-      .await
-      .map_err(|e| UpdateError::GithubError(e.to_string()))?;
-    // TODO: Implement version update check
-    //Ok(release.tag_name != (*self.config.read().await).current_application_tag)
-    unimplemented!("Need to implement version update check.")
+      .await {
+      Ok(release) => {
+        info!("Latest application version: {}", release.tag_name);
+        *latest_application_version.write().unwrap() = Some(release.tag_name);
+      },
+      Err(e) => {
+        error!("Can't get latest version: {:?}", e.source());
+        *latest_application_version.write().unwrap() = None;
+      }
+    }
   }
 
-  async fn check_for_engine_update(
-    engine_version: u32,
-    needs_engine_update: Arc<AtomicBool>,
+  async fn get_latest_engine_version(
     latest_engine_version: Arc<AtomicU32>,
   ) -> Result<(), UpdateError> {
     let release = octocrab::instance()
@@ -197,18 +213,13 @@ impl UpdateManager {
       .await
       .map_err(|e| UpdateError::GithubError(e.to_string()))?;
     let current_version_number = release.tag_name[1..].parse::<u32>().unwrap();
-    info!(
-      "Local engine version: {} - Remote Engine Version: {}",
-      engine_version, current_version_number
-    );
+    info!("Remote Engine Version: {}", current_version_number);
     latest_engine_version.store(current_version_number, Ordering::SeqCst);
-    needs_engine_update.store(current_version_number != engine_version, Ordering::SeqCst);
     Ok(())
   }
 
   pub async fn download_device_file_update() {
     let response = reqwest::get(DEVICE_CONFIG_URL).await.unwrap();
-
     let mut dest = { File::create(super::util::device_config_file_path()).unwrap() };
     let content = response.text().await.unwrap();
     copy(&mut content.as_bytes(), &mut dest).unwrap();
@@ -278,13 +289,6 @@ impl UpdateManager {
         break;
       }
     }
-  }
-
-  pub fn update_config(&self, config: &mut IntifaceConfiguration) {
-    *config.current_device_file_version_mut() =
-      self.latest_device_file_version.load(Ordering::SeqCst);
-    *config.current_engine_version_mut() = self.latest_engine_version.load(Ordering::SeqCst);
-    super::save_config_file(&serde_json::to_string(&config).unwrap()).unwrap();
   }
 
   pub async fn install_application(&self, config: &IntifaceConfiguration) {

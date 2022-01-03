@@ -106,7 +106,7 @@ impl Default for IntifaceDesktopApp {
 
     // Everything is where we expect it to be. Actually set up and run the application.
     info!("Setting up application");
-    let mut core = AppCore::default();
+    let mut core = AppCore::new();
     let json_str = load_config_file().unwrap();
     core.config = match IntifaceConfiguration::load_from_string(&json_str) {
       Ok(config) => config,
@@ -140,6 +140,10 @@ impl Default for IntifaceDesktopApp {
       None
     };
 
+    if core.config.check_for_updates_on_start() {
+      core.update_manager.check_for_updates();
+    }
+
     if core.config.start_server_on_startup() {
       core.process_manager.run(&core.config);
     }
@@ -169,7 +173,7 @@ impl epi::App for IntifaceDesktopApp {
   fn setup(
     &mut self,
     ctx: &egui::CtxRef,
-    _frame: &mut epi::Frame<'_>,
+    _frame: &epi::Frame,
     storage: Option<&dyn epi::Storage>,
   ) {
     /*
@@ -193,7 +197,7 @@ impl epi::App for IntifaceDesktopApp {
     epi::set_value(storage, epi::APP_KEY, self);
   }
 
-  fn update(&mut self, ctx: &egui::CtxRef, frame: &mut epi::Frame<'_>) {
+  fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
     let Self {
       current_screen,
       core,
@@ -201,15 +205,6 @@ impl epi::App for IntifaceDesktopApp {
       _logging_guard: _,
       _sentry_guard: _,
     } = self;
-
-    /*
-    egui::TopBottomPanel::bottom("bottom_panel").resizable(true).default_height(40.0).show(ctx, |ui| {
-      // The top panel is often a good place for a menu bar:
-      egui::ScrollArea::auto_sized().show_viewport(ui, |ui, r| {
-        ui.add(LogPanel);
-      });
-    });
-    */
     if let Some(d) = core.modal_manager.get_modal_dialog() {
       egui::CentralPanel::default().show(ctx, |ui| {
         ui.with_layout(
@@ -226,6 +221,15 @@ impl epi::App for IntifaceDesktopApp {
         FirstUsePanel::default().update(core, ui);
       });
     } else {
+      // Check for UI overrides
+      if core.config.force_open_log() {
+        *core.config.show_extended_ui_mut() = true;
+        *current_screen = AppScreens::Log;
+      } else if core.config.force_open_updates() {
+        *core.config.show_extended_ui_mut() = true;
+        *current_screen = AppScreens::Settings;
+      }
+
       let mut available_minimized_width = 0f32;
       let mut available_minimized_height = 0f32;
       egui::TopBottomPanel::top("top_panel")
@@ -283,7 +287,7 @@ impl epi::App for IntifaceDesktopApp {
                 AppScreens::DeviceTest => DeviceTestPanel::default().update(core, ui),
                 AppScreens::Settings => SettingsPanel::default().update(core, ui),
                 AppScreens::About => AboutPanel::default().update(core, ui),
-                AppScreens::Log => LogPanel::default().update(ui),
+                AppScreens::Log => LogPanel::default().update(core, ui),
               };
             });
         });

@@ -1,5 +1,6 @@
 // Taken from tracing-egui by CAD97
 
+use crate::core::AppCore;
 use super::archive::LOG_ENTRIES;
 use eframe::egui::{self, Color32, RichText};
 use tracing::{level_filters::STATIC_MAX_LEVEL, Level};
@@ -29,13 +30,18 @@ impl Default for LogPanelState {
 }
 
 impl LogPanel {
-  pub fn update(self, ui: &mut egui::Ui) {
+  pub fn update(self, core: &mut AppCore, ui: &mut egui::Ui) {
     let id = ui.make_persistent_id("tracing-egui::LogPanel");
     let mut state = ui
       .memory()
       .data
       .get_temp_mut_or_default::<LogPanelState>(id)
       .clone();
+
+    // if we've forced the log panel open, wind to the latest error message.
+    if core.config.force_open_log() {
+      *core.config.force_open_log_mut() = false;
+    }
 
     egui::TopBottomPanel::top("Log Levels").show(ui.ctx(), |ui| {
       ui.horizontal(|ui| {

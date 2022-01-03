@@ -43,32 +43,44 @@ impl ServerStatusPanel {
       .resizable(false)
       .frame(Frame::none())
       .show_inside(ui, |ui| {
-        ui.with_layout(
-          egui::Layout::centered_and_justified(egui::Direction::RightToLeft),
-          |ui| {
-            ui.set_max_width(50f32);
-
-            if !core.process_manager.is_running() {
-              ui.label(
-                RichText::new("🙉")
-                  .color(Color32::LIGHT_RED)
-                  .text_style(TextStyle::Heading),
-              );
-            } else if !core.process_manager.client_name().is_some() {
-              ui.label(
-                RichText::new("👂")
-                  .color(Color32::LIGHT_BLUE)
-                  .text_style(TextStyle::Heading),
-              );
+        ui.horizontal(|ui| {
+          if !core.process_manager.is_running() {
+            ui.label(
+              RichText::new("🙉")
+                .color(Color32::LIGHT_RED)
+                .text_style(TextStyle::Heading),
+            ).on_hover_text("Server not running");
+          } else if !core.process_manager.client_name().is_some() {
+            ui.label(
+              RichText::new("👂")
+                .color(Color32::LIGHT_BLUE)
+                .text_style(TextStyle::Heading),
+            ).on_hover_text("Server running, waiting for client connection");
+          } else {
+            ui.label(
+              RichText::new("📞")
+                .color(Color32::GREEN)
+                .text_style(TextStyle::Heading),
+            ).on_hover_text("Server connected to client");
+          }
+          ui.vertical(|ui| {
+            if core.config.has_error_message() {
+              if ui.button(RichText::new("！").color(Color32::LIGHT_RED)).on_hover_text("New error messages in log").clicked() {
+                *core.config.force_open_log_mut() = true;
+              }
             } else {
-              ui.label(
-                RichText::new("📞")
-                  .color(Color32::GREEN)
-                  .text_style(TextStyle::Heading),
-              );
+              ui.add(egui::Button::new("！").frame(false).sense(egui::Sense { click: false, drag: false, focusable: false} )).on_hover_text("No new error messages in log");
             }
-          },
-        );
+            if core.update_manager.needs_updates() {
+              if ui.button(RichText::new("⮉").color(Color32::WHITE)).on_hover_text("Updates available").clicked() {
+                *core.config.force_open_updates_mut() = true;
+              }
+            } else {
+              ui.add(egui::Button::new("⮉").frame(false).sense(egui::Sense { click: false, drag: false, focusable: false} )).on_hover_text("No updates available");
+            }
+            ui.button(RichText::new("？").color(Color32::GREEN)).on_hover_text("Go to docs/help website");
+          });
+        });
       });
 
     let mut available_height = 0f32;
