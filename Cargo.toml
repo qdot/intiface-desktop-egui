@@ -14,28 +14,28 @@ name = "intiface-desktop"
 path = "src/main.rs"
 
 [dependencies]
-buttplug = { version = "5.1.5", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"] }
+buttplug = { version = "5.1.6", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"] }
 # buttplug = { path = "../buttplug-rs/buttplug", default-features = false, features = ["client", "server", "tokio-runtime", "websockets"] }
 bytes = "1.1.0"
 chrono = "0.4.19"
 dashmap = "5.0.0"
 dirs = "4.0.0"
-eframe = "0.15.0"
+eframe = "0.16.0"
 futures = "0.3.19"
 getset = "0.1.2"
 hashbrown = "0.11.2"
 ico = "0.1.0"
 indexmap = "1.7.0"
 notify-rust = "4.5.5"
-octocrab = "0.15.2"
+octocrab = "0.15.3"
 once_cell = "1.9.0"
 parking_lot = "0.11.2"
 rand = "0.8.4"
 reqwest = "0.11.8"
 sentry = "0.23.0"
 sentry-tracing = "0.23.0"
-serde = { version = "1.0.132", features = ["derive"] }
-serde_json = "1.0.73"
+serde = { version = "1.0.133", features = ["derive"] }
+serde_json = "1.0.74"
 smartstring = "0.2.9"
 thiserror = "1.0.30"
 time = { version = "0.3.5", features = ["std", "formatting"] }
@@ -44,7 +44,7 @@ tokio-util = "0.6.9"
 tracing = "0.1.29"
 tracing-appender = "0.2.0"
 tracing-futures = "0.2.5"
-tracing-subscriber = { version = "0.3.4", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.5", features = ["env-filter"] }
 zip = "0.5.13"
 
 [build-dependencies]
@@ -56,7 +56,7 @@ default = []
 persistence = ["eframe/persistence"] # Enable if you want to persist app state on shutdown
 
 [target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
+winres = "0.1.12"
 
 [profile.release]
 opt-level = 2 # fast and small wasm
