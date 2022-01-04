@@ -1,4 +1,4 @@
-use crate::core::AppCore;
+use crate::core::{engine_file_path, AppCore};
 use eframe::egui::{self, Color32, Frame, RichText, TextStyle};
 
 #[derive(Default)]
@@ -14,26 +14,36 @@ impl ServerStatusPanel {
           egui::Layout::centered_and_justified(egui::Direction::RightToLeft),
           |ui| {
             ui.set_max_width(100f32);
-
-            let server_button = if core.process_manager.is_running() {
-              ui.button(
-                RichText::new("⬛")
-                  .color(Color32::LIGHT_RED)
-                  .text_style(TextStyle::Heading),
-              ).on_hover_text("Stop Server")
+            if engine_file_path().exists() {
+              let server_button = if core.process_manager.is_running() {
+                ui.button(
+                  RichText::new("⬛")
+                    .color(Color32::LIGHT_RED)
+                    .text_style(TextStyle::Heading),
+                )
+                .on_hover_text("Stop Server")
+              } else {
+                ui.button(
+                  RichText::new("▶")
+                    .color(Color32::GREEN)
+                    .text_style(TextStyle::Heading),
+                )
+                .on_hover_text("Start Server")
+              };
+              if server_button.clicked() {
+                if core.process_manager.is_running() {
+                  core.process_manager.stop();
+                } else {
+                  core.process_manager.run(&core.config);
+                }
+              }
             } else {
               ui.button(
-                RichText::new("▶")
-                  .color(Color32::GREEN)
+                RichText::new("🗙")
+                  .color(Color32::WHITE)
                   .text_style(TextStyle::Heading),
-              ).on_hover_text("Start Server")
-            };
-            if server_button.clicked() {
-              if core.process_manager.is_running() {
-                core.process_manager.stop();
-              } else {
-                core.process_manager.run(&core.config);
-              }
+              )
+              .on_hover_text("Server not available, please run upgrade process.");
             }
           },
         );
@@ -49,36 +59,58 @@ impl ServerStatusPanel {
               RichText::new("🙉")
                 .color(Color32::LIGHT_RED)
                 .text_style(TextStyle::Heading),
-            ).on_hover_text("Server not running");
+            )
+            .on_hover_text("Server not running");
           } else if !core.process_manager.client_name().is_some() {
             ui.label(
               RichText::new("👂")
                 .color(Color32::LIGHT_BLUE)
                 .text_style(TextStyle::Heading),
-            ).on_hover_text("Server running, waiting for client connection");
+            )
+            .on_hover_text("Server running, waiting for client connection");
           } else {
             ui.label(
               RichText::new("📞")
                 .color(Color32::GREEN)
                 .text_style(TextStyle::Heading),
-            ).on_hover_text("Server connected to client");
+            )
+            .on_hover_text("Server connected to client");
           }
           ui.vertical(|ui| {
             if core.config.has_error_message() {
-              if ui.button(RichText::new("！").color(Color32::LIGHT_RED)).on_hover_text("New error messages in log").clicked() {
+              if ui
+                .button(RichText::new("！").color(Color32::LIGHT_RED))
+                .on_hover_text("New error messages in log")
+                .clicked()
+              {
                 *core.config.force_open_log_mut() = true;
               }
             } else {
-              ui.add(egui::Button::new("！").frame(false).sense(egui::Sense { click: false, drag: false, focusable: false} )).on_hover_text("No new error messages in log");
+              ui.add(egui::Button::new("！").frame(false).sense(egui::Sense {
+                click: false,
+                drag: false,
+                focusable: false,
+              }))
+              .on_hover_text("No new error messages in log");
             }
             if core.update_manager.needs_updates() {
-              if ui.button(RichText::new("⮉").color(Color32::WHITE)).on_hover_text("Updates available").clicked() {
+              if ui
+                .button(RichText::new("⮉").color(Color32::WHITE))
+                .on_hover_text("Updates available")
+                .clicked()
+              {
                 *core.config.force_open_updates_mut() = true;
               }
             } else {
-              ui.add(egui::Button::new("⮉").frame(false).sense(egui::Sense { click: false, drag: false, focusable: false} )).on_hover_text("No updates available");
+              ui.add(egui::Button::new("⮉").frame(false).sense(egui::Sense {
+                click: false,
+                drag: false,
+                focusable: false,
+              }))
+              .on_hover_text("No updates available");
             }
-            ui.button(RichText::new("？").color(Color32::GREEN)).on_hover_text("Go to docs/help website");
+            ui.button(RichText::new("？").color(Color32::GREEN))
+              .on_hover_text("Go to docs/help website");
           });
         });
       });
