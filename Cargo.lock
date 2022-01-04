@@ -1452,7 +1452,7 @@ dependencies = [
 
 [[package]]
 name = "intiface-desktop-egui"
-version = "0.1.0"
+version = "1.0.999"
 dependencies = [
  "anyhow",
  "buttplug",
