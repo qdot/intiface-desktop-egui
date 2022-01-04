@@ -71,15 +71,27 @@ impl UpdateManager {
     }
 
     if util::engine_file_path().exists() {
-      let version_bytes = std::process::Command::new(util::engine_file_path())
-        .args(["--serverversion"])
-        .output()
-        .expect("failed to execute process")
-        .stdout;      
-      let vstr = String::from_utf8(version_bytes).unwrap();
-      let version_strings: Vec<&str> = vstr.split(".").collect();
-      let version = u32::from_str_radix(version_strings[0], 10).unwrap();
-      *current_engine_version.write().unwrap() = Some(version);
+      match std::process::Command::new(util::engine_file_path()).args(["--serverversion"]).output() {
+        Ok(process_result) => {
+          if let Ok(vstr) = String::from_utf8(process_result.stdout) {
+            let version_strings: Vec<&str> = vstr.split(".").collect();
+            if let Ok(version) = u32::from_str_radix(version_strings[0], 10) {
+              *current_engine_version.write().unwrap() = Some(version);
+              return;
+            } else {
+              error!("Error checking engine version, cannot parse output string into version, assuming old version.");
+            }
+          } else {
+            error!("Error checking engine version, cannot get output string.");
+          }
+          
+          *current_engine_version.write().unwrap() = None;
+        }
+        Err(e) => {
+          error!("Error checking engine version, cannot run process: {:?}", e);
+          *current_engine_version.write().unwrap() = None;
+        }
+      }
     } else {
       *current_engine_version.write().unwrap() = None;
     }
