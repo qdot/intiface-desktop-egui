@@ -1,54 +1,57 @@
-# egui template
+# Intiface Desktop
 
-[![dependency status](https://deps.rs/repo/github/emilk/egui_template/status.svg)](https://deps.rs/repo/github/emilk/egui_template)
-[![Build Status](https://github.com/emilk/egui_template/workflows/CI/badge.svg)](https://github.com/emilk/egui_template/actions?workflow=CI)
+[![Patreon donate button](https://img.shields.io/badge/patreon-donate-yellow.svg)](https://www.patreon.com/qdot)
+[![Github donate button](https://img.shields.io/badge/github-donate-ff69b4.svg)](https://www.github.com/sponsors/qdot)
+[![Discourse Forum](https://img.shields.io/badge/discourse-forum-blue.svg)](https://metafetish.club)
+[![Discord](https://img.shields.io/discord/353303527587708932.svg?logo=discord)](https://discord.buttplug.io)
+[![Twitter](https://img.shields.io/twitter/follow/buttplugio.svg?style=social&logo=twitter)](https://twitter.com/buttplugio)
 
-This is a template repo for [egui](https://github.com/emilk/egui/).
+Intiface is a set of applications and services for hosting sex toy connections. Where
+[Buttplug](https://buttplug.io) is for developers, Intiface is for users.
 
-The goal is for this to be the simplest way to get started writing a GUI app in Rust.
+Intiface Desktop acts as a main hub for managing devices on the system. At some point, it will also
+work as a installer/launcher for Buttplug apps, dev toolkit, and who knows what else.
 
-You can compile your app natively or for the web, and share it using Github Pages.
+For those familiar with the development of [Buttplug](https://buttplug.io) so far, you may have seen
+the "Buttplug Server" and other programs. Intiface takes the place of the Server program, and is the
+basis of UI/UX for Buttplug on both desktop and mobile.
 
-## Getting started
+## Support The Project
 
-Start by clicking "Use this template" at https://github.com/emilk/egui_template/ or follow [these instructions](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template).
+If you find this project helpful, you can [support Nonpolynomial Labs projects via
+Patreon](http://patreon.com/qdot)! Every donation helps us afford more hardware to reverse,
+document, and write code for!
 
-`src/app.rs` contains a simple example app. This is just to give some inspiration - most of it can be removed if you like.
+## License
 
-Make sure you are using the latest version of stable rust by running `rustup update`
+Intiface Desktop is BSD 3-Clause licensed.
 
-### Testing locally
+    Copyright (c) 2017-2022, Nonpolynomial Labs LLC
+    All rights reserved.
+    
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+    
+    * Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+    
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+    
+    * Neither the name of the project nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+    
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`cargo run --release`
 
-On Linux you need to first run:
-
-`sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev`
-
-### Compiling for the web
-
-You can compile your app to [WASM](https://en.wikipedia.org/wiki/WebAssembly) and publish it as a web page. For this you need to set up some tools. There are a few simple scripts that help you with this:
-
-``` sh
-./setup_web.sh
-./build_web.sh
-./start_server.sh
-open http://127.0.0.1:8080/
-```
-
-* `setup_web.sh` installs the tools required to build for web
-* `build_web.sh` compiles your code to wasm and puts it in the `docs/` folder (see below)
-* `start_server.sh` starts a local HTTP server so you can test before you publish
-* Open http://127.0.0.1:8080/ in a web browser to view
-
-The finished web app is found in the `docs/` folder (this is so that you can easily share it with [GitHub Pages](https://docs.github.com/en/free-pro-team@latest/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)). It consists of three files:
-
-* `index.html`: A few lines of HTML, CSS and JS that loads your app. **You need to edit this** (once) to replace `egui_template` with the name of your crate!
-* `your_crate_bg.wasm`: What the Rust code compiles to.
-* `your_crate.js`: Auto-generated binding between Rust and JS.
-
-You can test the template app at <https://emilk.github.io/egui_template/>.
-
-## Updating egui
-
-As of 2021, egui is in active development with frequent releases with breaking changes. [egui_template](https://github.com/emilk/egui_template/) will be updated in lock-step to always use the latest version of egui.
