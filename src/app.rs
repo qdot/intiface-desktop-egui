@@ -224,9 +224,11 @@ impl epi::App for IntifaceDesktopApp {
       // Check for UI overrides
       if core.config.force_open_log() {
         *core.config.show_extended_ui_mut() = true;
+        save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
         *current_screen = AppScreens::Log;
       } else if core.config.force_open_updates() {
         *core.config.show_extended_ui_mut() = true;
+        save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
         *current_screen = AppScreens::Settings;
       }
 
@@ -251,10 +253,12 @@ impl epi::App for IntifaceDesktopApp {
                   if ui.button("⏷").clicked() {
                     expanded.set(true);
                     *core.config.show_extended_ui_mut() = true;
+                    save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
                   }
                 } else {
                   if ui.button("⏶").clicked() {
                     *core.config.show_extended_ui_mut() = false;
+                    save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
                   }
                 }
               },
