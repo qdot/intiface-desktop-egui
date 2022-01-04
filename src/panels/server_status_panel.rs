@@ -20,13 +20,13 @@ impl ServerStatusPanel {
                 RichText::new("⬛")
                   .color(Color32::LIGHT_RED)
                   .text_style(TextStyle::Heading),
-              )
+              ).on_hover_text("Stop Server")
             } else {
               ui.button(
                 RichText::new("▶")
                   .color(Color32::GREEN)
                   .text_style(TextStyle::Heading),
-              )
+              ).on_hover_text("Start Server")
             };
             if server_button.clicked() {
               if core.process_manager.is_running() {
