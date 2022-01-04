@@ -120,7 +120,7 @@ impl SettingsPanel {
           ui.label(core.update_manager.current_application_version());
         });
         if core.update_manager.needs_application_update() {
-          ui.hyperlink_to(egui::RichText::new("Application Update Available - Click here to go to download site").color(egui::Color32::GOLD), "https://github.com/qdot/intiface-desktop-egui");
+          ui.hyperlink_to(egui::RichText::new("Application Update Available - Click here to go to download site").color(egui::Color32::GOLD), "https://github.com/qdot/intiface-desktop-egui/releases/latest");
         }
         ui.horizontal(|ui| {
           ui.label(egui::RichText::new("Intiface Engine Version: ").strong());
@@ -131,7 +131,7 @@ impl SettingsPanel {
           }
         });
         if core.update_manager.needs_engine_update() {
-          ui.label(egui::RichText::new("Engine Update Available - Click Get Updates").color(egui::Color32::GOLD));
+          ui.label(egui::RichText::new("Engine Update Available").color(egui::Color32::GOLD));
         }
         ui.horizontal(|ui| {
           ui.label(egui::RichText::new("Device Config File Version: ").strong());
@@ -142,12 +142,12 @@ impl SettingsPanel {
           }
         });
         if core.update_manager.needs_device_config_file_update() {
-          ui.label(egui::RichText::new("Device Config File Update Available - Click Get Updates").color(egui::Color32::GOLD));
+          ui.label(egui::RichText::new("Device Config File Update Available").color(egui::Color32::GOLD));
         }
         ui.horizontal(|ui| {
           
           if !core.update_manager.is_updating() {
-            if core.update_manager.needs_updates() {
+            if core.update_manager.needs_internal_updates() {
               if ui.button("Get Updates").clicked() {
                 core.update_manager.get_updates();
                 core.modal_manager.set_modal_dialog(UpdateDialog::default());

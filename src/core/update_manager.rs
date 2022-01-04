@@ -154,8 +154,12 @@ impl UpdateManager {
     latest_application_version.is_some() && self.current_application_version != *latest_application_version.as_ref().unwrap()
   }
 
+  pub fn needs_internal_updates(&self) -> bool {
+    self.needs_device_config_file_update() || self.needs_engine_update()
+  }
+
   pub fn needs_updates(&self) -> bool {
-    self.needs_device_config_file_update() || self.needs_engine_update() || self.needs_application_update()
+    self.needs_internal_updates() || self.needs_application_update()
   }
 
   pub fn is_updating(&self) -> bool {
