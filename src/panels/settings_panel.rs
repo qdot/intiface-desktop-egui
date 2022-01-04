@@ -47,6 +47,25 @@ impl ModalDialog for UpdateDialog {
   }
 }
 
+pub fn render_device_connection_types(core: &mut AppCore, ui: &mut egui::Ui) {
+  ui.checkbox(core.config.with_bluetooth_le_mut(), "Bluetooth LE");
+  ui.checkbox(core.config.with_xinput_mut(), "XInput");
+  ui.checkbox(
+    core.config.with_lovense_connect_service_mut(),
+    "Lovense Connect Service",
+  );
+  ui.checkbox(
+    core.config.with_lovense_hid_dongle_mut(),
+    "Lovense HID Dongle",
+  );
+  ui.checkbox(
+    core.config.with_lovense_serial_dongle_mut(),
+    "Lovense Serial Dongle",
+  );
+  ui.checkbox(core.config.with_hid_mut(), "HID");
+  ui.checkbox(core.config.with_serial_port_mut(), "Serial Ports");
+}
+
 #[derive(Default)]
 pub struct SettingsPanel {}
 
@@ -163,22 +182,7 @@ impl SettingsPanel {
       });
       ui.collapsing("Device Connection Types", |ui| {
         ui.vertical(|ui| {
-          ui.checkbox(core.config.with_bluetooth_le_mut(), "Bluetooth LE");
-          ui.checkbox(core.config.with_xinput_mut(), "XInput");
-          ui.checkbox(
-            core.config.with_lovense_connect_service_mut(),
-            "Lovense Connect Service",
-          );
-          ui.checkbox(
-            core.config.with_lovense_hid_dongle_mut(),
-            "Lovense HID Dongle",
-          );
-          ui.checkbox(
-            core.config.with_lovense_serial_dongle_mut(),
-            "Lovense Serial Dongle",
-          );
-          ui.checkbox(core.config.with_hid_mut(), "HID");
-          ui.checkbox(core.config.with_serial_port_mut(), "Serial Ports");
+          render_device_connection_types(core, ui);
         });
       });
 
