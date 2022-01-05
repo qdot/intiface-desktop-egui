@@ -9,6 +9,6 @@ pub use about_panel::AboutPanel;
 pub use device_settings_panel::DeviceSettingsPanel;
 pub use device_test_panel::DeviceTestPanel;
 pub use first_use_panel::FirstUsePanel;
-pub use log::{layer, LogPanel};
+pub use log::{EguiLayer, LogPanel};
 pub use server_status_panel::ServerStatusPanel;
 pub use settings_panel::{ResetIntifaceModalDialog, SettingsPanel};

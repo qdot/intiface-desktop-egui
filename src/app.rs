@@ -10,7 +10,7 @@ use super::panels::{
 use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
 use egui::{FontDefinitions, FontFamily, TextStyle};
-use std::{cell::Cell, rc::Rc, time::SystemTime};
+use std::{cell::Cell, rc::Rc, time::SystemTime, sync::{Arc, atomic::AtomicBool}};
 use time::OffsetDateTime;
 use tracing::{info, warn};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -33,11 +33,12 @@ pub struct IntifaceDesktopApp {
   current_screen: AppScreens,
   core: AppCore,
   expanded: Rc<Cell<bool>>,
+  has_error_message: Arc<AtomicBool>,
   _logging_guard: tracing_appender::non_blocking::WorkerGuard,
   _sentry_guard: Option<sentry::ClientInitGuard>,
 }
 
-fn setup_logging() -> WorkerGuard {
+fn setup_logging(has_error_message: Arc<AtomicBool>) -> WorkerGuard {
   if !super::core::log_path().exists() {
     // If we don't, create it and add default files.
     std::fs::create_dir_all(super::core::log_path());
@@ -62,7 +63,7 @@ fn setup_logging() -> WorkerGuard {
   tracing_subscriber::registry()
     .with(fmt_sub)
     .with(filter)
-    .with(super::panels::layer())
+    .with(super::panels::EguiLayer::new(has_error_message.clone()))
     .with(sentry_tracing::layer())
     .with(tracing_subscriber::fmt::layer())
     .init();
@@ -96,8 +97,9 @@ impl Default for IntifaceDesktopApp {
       super::core::UserDeviceConfigManager::default().save_user_config();
     }
 
+    let has_error_message = Arc::new(AtomicBool::new(false));
     // Now that we at least have a directory to store logs in, set up logging.
-    let _logging_guard = setup_logging();
+    let _logging_guard = setup_logging(has_error_message.clone());
 
     // See if we have an engine.
     if !super::core::engine_file_path().exists() {
@@ -153,6 +155,7 @@ impl Default for IntifaceDesktopApp {
       current_screen: AppScreens::DeviceSettings,
       core,
       expanded: Rc::new(Cell::new(false)),
+      has_error_message,
       _logging_guard,
       _sentry_guard,
     }
@@ -201,6 +204,7 @@ impl epi::App for IntifaceDesktopApp {
     let Self {
       current_screen,
       core,
+      has_error_message,
       expanded: _,
       _logging_guard: _,
       _sentry_guard: _,
@@ -237,7 +241,7 @@ impl epi::App for IntifaceDesktopApp {
       egui::TopBottomPanel::top("top_panel")
         .resizable(false)
         .show(ctx, |ui| {
-          ServerStatusPanel::default().update(core, ui);
+          ServerStatusPanel::default().update(core, has_error_message.clone(), ui);
           //available_minimized_width = ui.available_width
           available_minimized_height += ui.min_size().y;
         });

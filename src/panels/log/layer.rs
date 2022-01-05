@@ -1,26 +1,22 @@
 // Taken from tracing-egui by CAD97
 
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 
 use super::archive::*;
 use tracing::span;
 use tracing_subscriber::{layer, registry::LookupSpan, Layer};
 
 pub struct EguiLayer {
-  _priv: (),
+  has_error: Arc<AtomicBool>
 }
 
 impl EguiLayer {
-  pub fn new() -> Self {
+  pub fn new(has_error: Arc<AtomicBool>) -> Self {
     #[cfg(feature = "smartstring")]
     smartstring::validate();
-    EguiLayer { _priv: () }
-  }
-}
-
-impl Default for EguiLayer {
-  fn default() -> Self {
-    Self::new()
+    EguiLayer { 
+      has_error
+    }
   }
 }
 
@@ -75,6 +71,10 @@ where
   fn on_event(&self, event: &tracing::Event<'_>, ctx: layer::Context<'_, S>) {
     let meta = event.metadata();
     let span = ctx.event_span(event);
+
+    if *meta.level() == tracing::Level::ERROR {
+      self.has_error.store(true, Ordering::SeqCst);
+    }
 
     let mut log = LogEvent {
       meta,

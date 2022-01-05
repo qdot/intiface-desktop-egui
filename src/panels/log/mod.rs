@@ -12,6 +12,3 @@ type SmartString = String;
 pub use layer::EguiLayer;
 pub use panel::LogPanel;
 
-pub fn layer() -> EguiLayer {
-  EguiLayer::new()
-}

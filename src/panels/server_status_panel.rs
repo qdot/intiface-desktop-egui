@@ -1,11 +1,12 @@
 use crate::core::{engine_file_path, AppCore};
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use eframe::egui::{self, Color32, Frame, RichText, TextStyle};
 
 #[derive(Default)]
 pub struct ServerStatusPanel {}
 
 impl ServerStatusPanel {
-  pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
+  pub fn update(&mut self, core: &mut AppCore, has_error_message: Arc<AtomicBool>, ui: &mut egui::Ui) {
     egui::SidePanel::left("ServerStatusButtonPanel")
       .resizable(false)
       .frame(Frame::none())
@@ -77,12 +78,13 @@ impl ServerStatusPanel {
             .on_hover_text("Server connected to client");
           }
           ui.vertical(|ui| {
-            if core.config.has_error_message() {
+            if has_error_message.load(Ordering::SeqCst) {
               if ui
                 .button(RichText::new("！").color(Color32::LIGHT_RED))
                 .on_hover_text("New error messages in log")
                 .clicked()
               {
+                has_error_message.store(false, Ordering::SeqCst);
                 *core.config.force_open_log_mut() = true;
               }
             } else {

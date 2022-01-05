@@ -76,7 +76,7 @@ impl LogPanel {
     });
 
     egui::CentralPanel::default().show(ui.ctx(), |ui| {
-      egui::ScrollArea::vertical()
+      egui::ScrollArea::both()
         .id_source("log_panel")
         .show(ui, |ui| {
           ui.set_min_width(ui.available_width());
