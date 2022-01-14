@@ -2,6 +2,7 @@ mod about_panel;
 mod device_settings_panel;
 mod device_test_panel;
 mod first_use_panel;
+mod grid;
 mod log;
 mod server_status_panel;
 mod settings_panel;

@@ -1,60 +1,115 @@
-use crate::core::{engine_file_path, AppCore};
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
-use eframe::egui::{self, Color32, Frame, RichText, TextStyle};
+use crate::{
+  core::{engine_file_path, AppCore},
+};
+use super::grid::{GridBuilder, Padding, Size};
+use eframe::egui::{self, Button, Color32, Frame, RichText, TextStyle};
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc,
+};
 
 #[derive(Default)]
 pub struct ServerStatusPanel {}
 
 impl ServerStatusPanel {
-  pub fn update(&mut self, core: &mut AppCore, has_error_message: Arc<AtomicBool>, ui: &mut egui::Ui) {
-    egui::SidePanel::left("ServerStatusButtonPanel")
-      .resizable(false)
-      .frame(Frame::none())
-      .show_inside(ui, |ui| {
-        ui.with_layout(
-          egui::Layout::centered_and_justified(egui::Direction::RightToLeft),
-          |ui| {
-            ui.set_max_width(100f32);
-            if engine_file_path().exists() {
-              let server_button = if core.process_manager.is_running() {
-                ui.button(
+  pub fn update(
+    &mut self,
+    core: &mut AppCore,
+    has_error_message: Arc<AtomicBool>,
+    ui: &mut egui::Ui,
+  ) {
+    ui.set_min_height(75f32);
+    ui.set_max_height(75f32);
+    GridBuilder::new(ui, Padding::new(2.0, 1.0))
+      .size(Size::Absolute(75.0))
+      .size(Size::Remainder)
+      .size(Size::Absolute(50.0))
+      .size(Size::Absolute(20.0))
+      .horizontal(|mut grid| {
+        grid.cell(|ui| {
+          if engine_file_path().exists() {
+            let server_button = if core.process_manager.is_running() {
+              ui.add_sized(
+                [75.0, 75.0],
+                Button::new(
                   RichText::new("⬛")
                     .color(Color32::LIGHT_RED)
                     .text_style(TextStyle::Heading),
-                )
-                .on_hover_text("Stop Server")
-              } else {
-                ui.button(
+                ),
+              )
+              .on_hover_text("Stop Server")
+            } else {
+              ui.add_sized(
+                [75.0, 75.0],
+                Button::new(
                   RichText::new("▶")
                     .color(Color32::GREEN)
                     .text_style(TextStyle::Heading),
-                )
-                .on_hover_text("Start Server")
-              };
-              if server_button.clicked() {
-                if core.process_manager.is_running() {
-                  core.process_manager.stop();
-                } else {
-                  core.process_manager.run(&core.config);
-                }
-              }
-            } else {
-              ui.button(
-                RichText::new("🗙")
-                  .color(Color32::WHITE)
-                  .text_style(TextStyle::Heading),
+                ),
               )
-              .on_hover_text("Server not available, please run upgrade process.");
+              .on_hover_text("Start Server")
+            };
+            if server_button.clicked() {
+              if core.process_manager.is_running() {
+                core.process_manager.stop();
+              } else {
+                core.process_manager.run(&core.config);
+              }
             }
-          },
-        );
-      });
-
-    egui::SidePanel::right("ServerStatusIconPanel")
-      .resizable(false)
-      .frame(Frame::none())
-      .show_inside(ui, |ui| {
-        ui.horizontal(|ui| {
+          } else {
+            ui.button(
+              RichText::new("🗙")
+                .color(Color32::WHITE)
+                .text_style(TextStyle::Heading),
+            )
+            .on_hover_text("Server not available, please run upgrade process.");
+          }
+        });
+        grid.cell(|ui| {
+          ui.with_layout(
+            egui::Layout::centered_and_justified(egui::Direction::TopDown).with_cross_align(egui::Align::Center),
+            |ui| {
+              ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                  ui.label(RichText::new("Server Status:").strong());
+                  if core.process_manager.is_running() {
+                    ui.label("Server Running");
+                  } else {
+                    ui.label("Server Disconnected");
+                  }
+                });
+                ui.horizontal(|ui| {
+                  ui.label(RichText::new("Client Status:").strong());
+                  if core.process_manager.is_running() {
+                    if let Some(name) = core.process_manager.client_name() {
+                      ui.label(name);
+                    } else {
+                      ui.label("Disconnected");
+                    }
+                  } else {
+                    ui.label("Server Not Available");
+                  }
+                });
+                ui.horizontal(|ui| {
+                  ui.label(RichText::new("Device Status:").strong());
+                  if core.process_manager.is_running() {
+                    let devices = core.process_manager.client_devices();
+                    if !devices.is_empty() {
+                      for device in devices {
+                        ui.label(format!("{}, ", device.name));
+                      }
+                    } else {
+                      ui.label("No devices connected.");
+                    }
+                  } else {
+                    ui.label("Server Not Available");
+                  }
+                });
+              });
+            },
+          );
+        });
+        grid.cell(|ui| {
           if !core.process_manager.is_running() {
             ui.label(
               RichText::new("🙉")
@@ -77,6 +132,8 @@ impl ServerStatusPanel {
             )
             .on_hover_text("Server connected to client");
           }
+        });
+        grid.cell(|ui| {
           ui.vertical(|ui| {
             if has_error_message.load(Ordering::SeqCst) {
               if ui
@@ -116,54 +173,5 @@ impl ServerStatusPanel {
           });
         });
       });
-
-    let mut available_height = 0f32;
-    egui::CentralPanel::default().show_inside(ui, |ui| {
-      ui.vertical(|ui| {
-        ui.horizontal(|ui| {
-          ui.label(RichText::new("Server Status:").strong());
-          if core.process_manager.is_running() {
-            ui.label("Server Running");
-          } else {
-            ui.label("Server Disconnected");
-          }
-        });
-        ui.horizontal(|ui| {
-          ui.label(RichText::new("Client Status:").strong());
-          if core.process_manager.is_running() {
-            if let Some(name) = core.process_manager.client_name() {
-              ui.label(name);
-            } else {
-              ui.label("Disconnected");
-            }
-          } else {
-            ui.label("Server Not Available");
-          }
-        });
-        ui.horizontal(|ui| {
-          ui.label(RichText::new("Device Status:").strong());
-          if core.process_manager.is_running() {
-            let devices = core.process_manager.client_devices();
-            if !devices.is_empty() {
-              for device in devices {
-                ui.label(format!("{}, ", device.name));
-              }
-            } else {
-              ui.label("No devices connected.");
-            }
-          } else {
-            ui.label("Server Not Available");
-          }
-        });
-      });
-      available_height = ui.min_size().y;
-    });
-    let id = ui.make_persistent_id("ServerStatusPanel::Height");
-    let height = ui
-      .memory()
-      .data
-      .get_temp_mut_or_insert_with(id, || available_height + 20f32)
-      .clone();
-    ui.set_min_height(height);
   }
 }
