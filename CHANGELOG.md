@@ -1,5 +1,5 @@
 
-# 1.0.999 (Fifth Alpha)
+# 1.0.999 (First Beta) (2022-01-04)
 
 ## Features
 
@@ -13,9 +13,7 @@
   hand
 - Add tooltips to buttons that may not be obvious otherwise
 
-## Bugfixes
-
-# Alphas 1-3
+# Alphas 1-4 (2021-12-28)
 
 ## Features
 
