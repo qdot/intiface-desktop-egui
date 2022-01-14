@@ -175,7 +175,7 @@ impl epi::App for IntifaceDesktopApp {
   //#[cfg(feature = "persistence")]
   fn setup(
     &mut self,
-    ctx: &egui::CtxRef,
+    ctx: &egui::Context,
     _frame: &epi::Frame,
     storage: Option<&dyn epi::Storage>,
   ) {
@@ -200,7 +200,7 @@ impl epi::App for IntifaceDesktopApp {
     epi::set_value(storage, epi::APP_KEY, self);
   }
 
-  fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
+  fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
     let Self {
       current_screen,
       core,
