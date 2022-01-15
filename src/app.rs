@@ -1,6 +1,7 @@
 use super::panels::{
   AboutPanel,
   DeviceSettingsPanel,
+  DeviceSimulationPanel,
   DeviceTestPanel,
   FirstUsePanel,
   LogPanel,
@@ -20,6 +21,7 @@ use tracing_subscriber::{prelude::*, EnvFilter};
 enum AppScreens {
   DeviceSettings,
   DeviceTest,
+  DeviceSimulation,
   Settings,
   Log,
   About,
@@ -279,6 +281,7 @@ impl epi::App for IntifaceDesktopApp {
               "Device Settings",
             );
             ui.selectable_value(current_screen, AppScreens::DeviceTest, "Device Test");
+            ui.selectable_value(current_screen, AppScreens::DeviceSimulation, "Device Simulation");
             ui.selectable_value(current_screen, AppScreens::Settings, "App Settings");
             ui.selectable_value(current_screen, AppScreens::Log, "App Log");
             ui.selectable_value(current_screen, AppScreens::About, "Help/About");
@@ -293,6 +296,7 @@ impl epi::App for IntifaceDesktopApp {
               match current_screen {
                 AppScreens::DeviceSettings => DeviceSettingsPanel::default().update(core, ui),
                 AppScreens::DeviceTest => DeviceTestPanel::default().update(core, ui),
+                AppScreens::DeviceSimulation => DeviceSimulationPanel::default().update(core, ui),
                 AppScreens::Settings => SettingsPanel::default().update(core, ui),
                 AppScreens::About => AboutPanel::default().update(core, ui),
                 AppScreens::Log => LogPanel::default().update(core, ui),

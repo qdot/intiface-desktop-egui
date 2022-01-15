@@ -65,6 +65,9 @@ pub struct IntifaceConfiguration {
   with_xinput: bool,
   #[getset(get_copy = "pub")]
   #[serde(default)]
+  with_device_websocket_server: bool,  
+  #[getset(get_copy = "pub")]
+  #[serde(default)]
   crash_reporting: bool,
   #[getset(get_copy = "pub")]
   #[serde(default)]
@@ -110,6 +113,7 @@ impl Default for IntifaceConfiguration {
       with_lovense_serial_dongle: true,
       with_lovense_connect_service: false,
       with_xinput: true,
+      with_device_websocket_server: false,
       crash_reporting: true,
       show_notifications: true,
       has_run_first_use: false,

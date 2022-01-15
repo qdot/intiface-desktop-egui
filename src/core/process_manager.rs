@@ -1,7 +1,6 @@
 use super::{process_messages::*, util, IntifaceConfiguration};
 use dashmap::{DashMap, DashSet};
 use notify_rust::Notification;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sentry::SentryFutureExt;
 use std::{
   io,
@@ -259,6 +258,9 @@ impl ProcessManager {
     if config.with_lovense_connect_service() {
       args.push("--with-lovense-connect".to_owned());
     }
+    if config.with_device_websocket_server() {
+      args.push("--with-device-websocket-server".to_owned());
+    }
 
     if config.crash_reporting() {
       args.push("--crash-reporting".to_owned());
@@ -272,11 +274,7 @@ impl ProcessManager {
   }
 
   pub fn run(&mut self, config: &IntifaceConfiguration) -> Result<(), ProcessError> {
-    let rand_string: String = thread_rng()
-      .sample_iter(&Alphanumeric)
-      .take(15)
-      .map(char::from)
-      .collect();
+    let rand_string = super::util::random_string();
     #[cfg(target_os = "windows")]
     let pipe_name = format!("\\\\.\\pipe\\{}", rand_string);
     #[cfg(not(target_os = "windows"))]

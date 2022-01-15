@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
 pub const USER_DEVICE_CONFIG_FILENAME: &str = "buttplug-user-device-config.json";
 pub const DEVICE_CONFIG_FILENAME: &str = "buttplug-device-config.json";
@@ -67,4 +68,12 @@ pub fn engine_file_path() -> PathBuf {
   let mut dir = PathBuf::from("c:\\Users\\qdot\\code\\intiface-cli-rs\\target\\debug");
   dir.push(EXECUTABLE_NAME);
   dir
+}
+
+pub fn random_string() -> String {
+  thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(15)
+    .map(char::from)
+    .collect()
 }

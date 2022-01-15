@@ -64,6 +64,7 @@ pub fn render_device_connection_types(core: &mut AppCore, ui: &mut egui::Ui) {
   );
   ui.checkbox(core.config.with_hid_mut(), "HID");
   ui.checkbox(core.config.with_serial_port_mut(), "Serial Ports");
+  ui.checkbox(core.config.with_device_websocket_server_mut(), "Websocket Server (for Devices)");
 }
 
 #[derive(Default)]
