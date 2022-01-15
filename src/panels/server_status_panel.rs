@@ -2,7 +2,7 @@ use crate::{
   core::{engine_file_path, AppCore},
 };
 use super::grid::{GridBuilder, Padding, Size};
-use eframe::egui::{self, Button, Color32, Frame, RichText, TextStyle};
+use eframe::egui::{self, Button, Color32, RichText, TextStyle};
 use std::sync::{
   atomic::{AtomicBool, Ordering},
   Arc,

@@ -1,8 +1,6 @@
 use crate::core::{device_config_file_path, engine_file_path, save_config_file, AppCore};
 use eframe::egui::{self, RichText};
 
-#[derive(Default)]
-pub struct FirstUsePanel {}
 
 #[derive(Debug, Clone, Copy)]
 enum FirstUseState {
@@ -15,14 +13,28 @@ enum FirstUseState {
 
 #[derive(Debug, Clone, Copy)]
 enum DownloadState {
-  Starting,
+  NotDownloading,
   Downloading,
   WaitForDownloads,
   Done
 }
 
+pub struct FirstUsePanel {
+  panel_state: FirstUseState,
+  download_state: DownloadState
+}
+
+impl Default for FirstUsePanel {
+  fn default() -> Self {
+    Self {
+      panel_state: FirstUseState::Intro,
+      download_state: DownloadState::NotDownloading,
+    }
+  }
+}
+
 impl FirstUsePanel {
-  fn intro(&self, ui: &mut egui::Ui) {
+  fn intro(&mut self, ui: &mut egui::Ui) {
     let mut clicked = false;
     ui.with_layout(
       egui::Layout::centered_and_justified(egui::Direction::TopDown),
@@ -32,27 +44,16 @@ impl FirstUsePanel {
         ui.vertical(|ui| {
           ui.label("Hello and welcome to Intiface Desktop! Before we get started controlling toys, we need to configure a few things.");
           if ui.button("Continue").clicked() {
-            clicked = true;
+            self.panel_state = FirstUseState::DownloadCheck;
           }
         });
       },
     );
-    if clicked {
-      let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-      ui.memory().data.remove::<FirstUseState>(id);
-      ui.memory()
-        .data
-        .insert_temp(id, FirstUseState::DownloadCheck);
-    }
   }
 
-  fn download_check(&self, core: &mut AppCore, ui: &mut egui::Ui) {
-    let state_id = ui.make_persistent_id("FirstUsePanel::DownloadState");
-    let state = ui.memory().data.get_temp_mut_or(state_id, DownloadState::Starting).clone();
-    
-    let mut new_state = state;
-    match state {
-      DownloadState::Starting => {
+  fn download_check(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
+    match self.download_state {
+      DownloadState::NotDownloading => {
         ui.with_layout(
           egui::Layout::centered_and_justified(egui::Direction::TopDown),
           |ui| {
@@ -78,18 +79,18 @@ impl FirstUsePanel {
               }
   
               if ui.button("Download Updates (If Available, Optional)").clicked() {
-                new_state = DownloadState::Downloading;
+                self.download_state = DownloadState::Downloading;
               }
     
               if ui.button("Continue").clicked() {
-                new_state = DownloadState::Done;
+                self.download_state = DownloadState::Done;
               }
             });
           });
       },
       DownloadState::Downloading => {
         core.update_manager.get_updates();
-        new_state = DownloadState::WaitForDownloads;
+        self.download_state = DownloadState::WaitForDownloads;
       },
       DownloadState::WaitForDownloads => {
         if core.update_manager.is_updating() {
@@ -98,25 +99,19 @@ impl FirstUsePanel {
           ui.vertical(|ui|{
             ui.label("Downloads finished!");
             if ui.button("Continue").clicked() {
-              new_state = DownloadState::Done;
+              self.download_state = DownloadState::Done;
             }
           });
         }
       },
       DownloadState::Done => {
-        let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-        ui.memory().data.remove::<FirstUseState>(id);
-        ui.memory()
-          .data
-          .insert_temp(id, FirstUseState::DeviceWizard);
+        self.download_state = DownloadState::NotDownloading;
+        self.panel_state = FirstUseState::DeviceWizard;
       }
     }
-    ui.memory().data.remove::<DownloadState>(state_id);
-    ui.memory().data.insert_temp(state_id, new_state);
   }
 
-  fn device_wizard(&self, core: &mut AppCore, ui: &mut egui::Ui) {
-    let mut clicked = false;
+  fn device_wizard(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
     ui.with_layout(
       egui::Layout::centered_and_justified(egui::Direction::TopDown),
       |ui| {
@@ -128,22 +123,14 @@ impl FirstUsePanel {
           ui.label("Only choose one of Bluetooth LE, Lovense Dongle, or Lovense Connect. Having multiple of these on with a Lovense toy can cause conflicts. Bluetooth LE is the recommended connection method if available.");
           super::settings_panel::render_device_connection_types(core, ui);
           if ui.button("Continue").clicked() {
-            clicked = true;
+            self.panel_state = FirstUseState::AllowCrashReporting;
           }
         });
       },
     );
-    if clicked {
-      let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-      ui.memory().data.remove::<FirstUseState>(id);
-      ui.memory()
-        .data
-        .insert_temp(id, FirstUseState::AllowCrashReporting);
-    }
   }
 
-  fn allow_crash_reporting(&self, core: &mut AppCore, ui: &mut egui::Ui) {
-    let mut clicked = false;
+  fn allow_crash_reporting(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
     ui.with_layout(
       egui::Layout::centered_and_justified(egui::Direction::TopDown),
       |ui| {
@@ -152,20 +139,14 @@ impl FirstUsePanel {
         ui.vertical(|ui| {
           ui.label("Note that, for the beta, crash reporting is turned on by default. This allows us to find and fix bugs before the full public release. In the full public release, crash logging will be off by default. If you object to crash logging during the beta period, you can disable it in settings.");
           if ui.button("Continue").clicked() {
-            clicked = true;
+            self.panel_state = FirstUseState::Finish;
           }
         });
       },
     );
-    if clicked {
-      let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-      ui.memory().data.remove::<FirstUseState>(id);
-      ui.memory().data.insert_temp(id, FirstUseState::Finish);
-    }
   }
 
-  fn finish(&self, core: &mut AppCore, ui: &mut egui::Ui) {
-    let mut clicked = false;
+  fn finish(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
     ui.with_layout(
       egui::Layout::centered_and_justified(egui::Direction::TopDown),
       |ui| {
@@ -174,27 +155,16 @@ impl FirstUsePanel {
         ui.vertical(|ui| {
           ui.label("All done, enjoy Intiface Desktop!");
           if ui.button("Continue").clicked() {
-            clicked = true;
+            *core.config.has_run_first_use_mut() = true;
+            save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
           }
         });
       },
     );
-    if clicked {
-      let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-      ui.memory().data.remove::<FirstUseState>(id);
-      *core.config.has_run_first_use_mut() = true;
-      save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
-    }
   }
 
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
-    let id = ui.make_persistent_id("FirstUsePanel::FirstUseState");
-    let panel_state = ui
-      .memory()
-      .data
-      .get_temp_mut_or(id, FirstUseState::Intro)
-      .clone();
-    match panel_state {
+    match self.panel_state {
       FirstUseState::Intro => self.intro(ui),
       FirstUseState::DownloadCheck => self.download_check(core, ui),
       FirstUseState::DeviceWizard => self.device_wizard(core, ui),

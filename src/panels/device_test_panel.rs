@@ -13,14 +13,15 @@ use std::sync::Arc;
 use tracing::info;
 
 #[derive(Default)]
-pub struct DeviceTestPanel {}
+pub struct DeviceTestPanel {
+  client: Option<Arc<ButtplugClient>>
+}
 
 impl DeviceTestPanel {
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
-    let id = ui.make_persistent_id("DevicesPanel::ButtplugClient");
-    let maybe_client = ui.memory().data.get_temp::<Arc<ButtplugClient>>(id).clone();
-    if core.process_manager.is_running() && (core.process_manager.client_name().is_none() || maybe_client.is_some()) {
-      if let Some(client) = maybe_client {
+    if core.process_manager.is_running() && (core.process_manager.client_name().is_none() || self.client.is_some()) {
+      if self.client.is_some() {
+        let client = self.client.as_ref().expect("Already checked existence").clone();
         if !client.connected() {
           ui.label("Connecting...");
           return;
@@ -44,7 +45,7 @@ impl DeviceTestPanel {
                 }
                 .bind_hub(sentry::Hub::current().clone()),
               );
-              ui.memory().data.remove::<Arc<ButtplugClient>>(id);
+              let _ = self.client.take();
             }
           });
           for device in client.devices() {
@@ -117,7 +118,7 @@ impl DeviceTestPanel {
         if ui.button("Connect To Server").clicked() {
           let client = Arc::new(ButtplugClient::new("Intiface Desktop Device Tab Client"));
           let client_clone = client.clone();
-          ui.memory().data.insert_temp(id, client);
+          self.client = Some(client);
 
           tokio::spawn(
             async move {
@@ -146,8 +147,8 @@ impl DeviceTestPanel {
       } else {
         ui.label("Intiface Server must be running in order to use Device Test panel.");
       }
-      if maybe_client.is_some() {
-        ui.memory().data.remove::<Arc<ButtplugClient>>(id);
+      if self.client.is_some() {
+        let _ = self.client.take();
       }
     }
   }

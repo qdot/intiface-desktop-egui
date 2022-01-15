@@ -6,7 +6,9 @@ use eframe::egui::{self, Color32, RichText};
 use tracing::{level_filters::STATIC_MAX_LEVEL, Level};
 
 #[derive(Debug, Default)]
-pub struct LogPanel;
+pub struct LogPanel {
+  state: LogPanelState,
+}
 
 #[derive(Debug, Clone)]
 struct LogPanelState {
@@ -20,7 +22,7 @@ struct LogPanelState {
 impl Default for LogPanelState {
   fn default() -> Self {
     Self {
-      trace: true,
+      trace: false,
       debug: true,
       info: true,
       warn: true,
@@ -30,13 +32,9 @@ impl Default for LogPanelState {
 }
 
 impl LogPanel {
-  pub fn update(self, core: &mut AppCore, ui: &mut egui::Ui) {
+  pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
+    // Needed for log line container indexing.
     let id = ui.make_persistent_id("tracing-egui::LogPanel");
-    let mut state = ui
-      .memory()
-      .data
-      .get_temp_mut_or_default::<LogPanelState>(id)
-      .clone();
 
     // if we've forced the log panel open, wind to the latest error message.
     if core.config.force_open_log() {
@@ -46,19 +44,19 @@ impl LogPanel {
     egui::TopBottomPanel::top("Log Levels").show(ui.ctx(), |ui| {
       ui.horizontal(|ui| {
         if Level::TRACE < STATIC_MAX_LEVEL {
-          ui.checkbox(&mut state.trace, "trace");
+          ui.checkbox(&mut self.state.trace, "trace");
         }
         if Level::DEBUG < STATIC_MAX_LEVEL {
-          ui.checkbox(&mut state.debug, "debug");
+          ui.checkbox(&mut self.state.debug, "debug");
         }
         if Level::INFO < STATIC_MAX_LEVEL {
-          ui.checkbox(&mut state.info, "info");
+          ui.checkbox(&mut self.state.info, "info");
         }
         if Level::WARN < STATIC_MAX_LEVEL {
-          ui.checkbox(&mut state.warn, "warn");
+          ui.checkbox(&mut self.state.warn, "warn");
         }
         if Level::ERROR < STATIC_MAX_LEVEL {
-          ui.checkbox(&mut state.error, "error");
+          ui.checkbox(&mut self.state.error, "error");
         }
       })
     });
@@ -83,11 +81,11 @@ impl LogPanel {
           let log_entries = LOG_ENTRIES.lock();
           for (log_ix, log) in log_entries.iter().enumerate().rev() {
             let filtered_out = match *log.meta.level() {
-              Level::TRACE => !state.trace,
-              Level::DEBUG => !state.debug,
-              Level::INFO => !state.info,
-              Level::WARN => !state.warn,
-              Level::ERROR => !state.error,
+              Level::TRACE => !self.state.trace,
+              Level::DEBUG => !self.state.debug,
+              Level::INFO => !self.state.info,
+              Level::WARN => !self.state.warn,
+              Level::ERROR => !self.state.error,
             };
             if filtered_out {
               continue;
@@ -143,6 +141,5 @@ impl LogPanel {
           }
         })
     });
-    ui.memory().data.insert_persisted(id, state);
   }
 }

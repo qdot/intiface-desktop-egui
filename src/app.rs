@@ -31,11 +31,24 @@ enum AppScreens {
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))] // if we add new fields, give them default values when deserializing old state
 
+#[derive(Default)]
+struct AppPanels {
+  about_panel: AboutPanel,
+  device_settings_panel: DeviceSettingsPanel,
+  device_simulation_panel: DeviceSimulationPanel,
+  device_test_panel: DeviceTestPanel,
+  first_use_panel: FirstUsePanel,
+  log_panel: LogPanel,
+  server_status_panel: ServerStatusPanel,
+  settings_panel: SettingsPanel,
+}
+
 pub struct IntifaceDesktopApp {
   current_screen: AppScreens,
   core: AppCore,
   expanded: Rc<Cell<bool>>,
   has_error_message: Arc<AtomicBool>,
+  panels: AppPanels,
   _logging_guard: tracing_appender::non_blocking::WorkerGuard,
   _sentry_guard: Option<sentry::ClientInitGuard>,
 }
@@ -158,6 +171,7 @@ impl Default for IntifaceDesktopApp {
       core,
       expanded: Rc::new(Cell::new(false)),
       has_error_message,
+      panels: AppPanels::default(),
       _logging_guard,
       _sentry_guard,
     }
@@ -208,6 +222,7 @@ impl epi::App for IntifaceDesktopApp {
       core,
       has_error_message,
       expanded: _,
+      panels,
       _logging_guard: _,
       _sentry_guard: _,
     } = self;
@@ -243,7 +258,7 @@ impl epi::App for IntifaceDesktopApp {
       egui::TopBottomPanel::top("top_panel")
         .resizable(false)
         .show(ctx, |ui| {
-          ServerStatusPanel::default().update(core, has_error_message.clone(), ui);
+          panels.server_status_panel.update(core, has_error_message.clone(), ui);
           //available_minimized_width = ui.available_width
           available_minimized_height += ui.min_size().y;
         });
@@ -294,12 +309,12 @@ impl epi::App for IntifaceDesktopApp {
             .show(ui, |ui| {
               ui.set_min_width(ui.available_width());
               match current_screen {
-                AppScreens::DeviceSettings => DeviceSettingsPanel::default().update(core, ui),
-                AppScreens::DeviceTest => DeviceTestPanel::default().update(core, ui),
-                AppScreens::DeviceSimulation => DeviceSimulationPanel::default().update(core, ui),
-                AppScreens::Settings => SettingsPanel::default().update(core, ui),
-                AppScreens::About => AboutPanel::default().update(core, ui),
-                AppScreens::Log => LogPanel::default().update(core, ui),
+                AppScreens::DeviceSettings => panels.device_settings_panel.update(core, ui),
+                AppScreens::DeviceTest => panels.device_test_panel.update(core, ui),
+                AppScreens::DeviceSimulation => panels.device_simulation_panel.update(core, ui),
+                AppScreens::Settings => panels.settings_panel.update(core, ui),
+                AppScreens::About => panels.about_panel.update(core, ui),
+                AppScreens::Log => panels.log_panel.update(core, ui),
               };
             });
         });
