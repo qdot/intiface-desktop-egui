@@ -77,12 +77,12 @@ async fn device_simulator_loop(
     }
   };
 
-  let address = super::util::random_string();
-
   // If we've gotten this far, we need to construct a init info packet to identify ourselves to the server.
   let info = serde_json::to_string(&WebsocketServerDeviceCommManagerInitInfo {
     identifier: identifier.to_owned(),
-    address,
+    // For now, we'll assume each simulated device is its own instance, therefore the identifier is
+    // also the address.
+    address: identifier.to_owned(),
     version: 1,
   })
   .expect("This will always convert correctly");
