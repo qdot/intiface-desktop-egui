@@ -3,44 +3,56 @@ use eframe::egui;
 use core::ops::RangeInclusive;
 
 #[derive(Default)]
-pub struct DeviceSimulationPanel {}
+pub struct DeviceSimulationPanel {
+  name: String,
+  num_vibrators: u32,
+  num_rotators: u32,
+  num_linear: u32,
+}
 
 impl DeviceSimulationPanel {
   pub fn update(&mut self, core: &mut AppCore, ui: &mut egui::Ui) {
 
     ui.collapsing("Simulated Device Settings", |ui| {
       ui.vertical(|ui|{
-        let mut identifier = String::new();
         ui.horizontal(|ui| {
-          ui.label("Identifier");
-          ui.text_edit_singleline(&mut identifier);
+          ui.label("Display Name");
+          ui.text_edit_singleline(&mut self.name);
         });
-        let mut num_vibrators = 0u32;
         ui.horizontal(|ui| {
           ui.label("# of Vibrating Features");
-          ui.add(egui::DragValue::new(&mut num_vibrators).speed(1).clamp_range(RangeInclusive::new(1u32, 10)));
+          ui.add(egui::DragValue::new(&mut self.num_vibrators).speed(0.1).clamp_range(RangeInclusive::new(0u32, 10)));
         });
-        let mut num_rotators = 0u32;
         ui.horizontal(|ui| {
           ui.label("# of Rotating Features");
-          ui.add(egui::DragValue::new(&mut num_rotators).speed(1).clamp_range(RangeInclusive::new(1u32, 10)));
+          ui.add(egui::DragValue::new(&mut self.num_rotators).speed(0.1).clamp_range(RangeInclusive::new(0u32, 10)));
         });
-        let mut num_linear = 0u32;
         ui.horizontal(|ui| {
           ui.label("# of Linear Features");
-          ui.add(egui::DragValue::new(&mut num_linear).speed(1).clamp_range(RangeInclusive::new(1u32, 10)));
+          ui.add(egui::DragValue::new(&mut self.num_linear).speed(0.1).clamp_range(RangeInclusive::new(0u32, 10)));
         });
         ui.horizontal(|ui| {
-          ui.button("Add Simulated Device")
+          if ui.button("Add Simulated Device").clicked() {
+            core.user_device_config_manager.add_simulated_device(&self.name, self.num_vibrators, self.num_rotators, self.num_linear);
+          }
         });  
       });
     });
-
+    ui.vertical(|ui| {
+      for device in core.user_device_config_manager.get_simulated_devices() {
+        ui.label(format!("{}", device.name().as_ref().expect("Should have name").get("en-us").expect("always have en-us")));
+        if ui.button("Remove").clicked() {
+          core.user_device_config_manager.remove_simulated_device(&device);
+        }
+      }
+    });
+/*
     if core.process_manager.is_running() {
       if ui.button("Connect").clicked() {
         let device = SimulatedDevice::new("testing");
         device.connect("ws://127.0.0.1:54817");
       }
     }
+    */
   }
 }
