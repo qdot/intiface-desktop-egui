@@ -5,6 +5,7 @@ use super::panels::{
   DeviceTestPanel,
   FirstUsePanel,
   LogPanel,
+  NewsPanel,
   ServerStatusPanel,
   SettingsPanel,
 };
@@ -19,6 +20,7 @@ use tracing_subscriber::{prelude::*, EnvFilter};
 
 #[derive(Debug, PartialEq)]
 enum AppScreens {
+  News,
   DeviceSettings,
   DeviceTest,
   DeviceSimulation,
@@ -37,8 +39,8 @@ struct AppPanels {
   device_settings_panel: DeviceSettingsPanel,
   device_simulation_panel: DeviceSimulationPanel,
   device_test_panel: DeviceTestPanel,
-  first_use_panel: FirstUsePanel,
   log_panel: LogPanel,
+  news_panel: NewsPanel,
   server_status_panel: ServerStatusPanel,
   settings_panel: SettingsPanel,
 }
@@ -112,6 +114,10 @@ impl Default for IntifaceDesktopApp {
       super::core::UserDeviceConfigManager::default().save_user_config();
     }
 
+    if !super::core::news_path().exists() {
+      std::fs::create_dir_all(super::core::news_path());
+    }
+
     let has_error_message = Arc::new(AtomicBool::new(false));
     // Now that we at least have a directory to store logs in, set up logging.
     let _logging_guard = setup_logging(has_error_message.clone());
@@ -167,7 +173,7 @@ impl Default for IntifaceDesktopApp {
     
     info!("App created successfully.");
     Self {
-      current_screen: AppScreens::DeviceSettings,
+      current_screen: AppScreens::News,
       core,
       expanded: Rc::new(Cell::new(false)),
       has_error_message,
@@ -193,13 +199,9 @@ impl epi::App for IntifaceDesktopApp {
     &mut self,
     ctx: &egui::Context,
     _frame: &epi::Frame,
-    storage: Option<&dyn epi::Storage>,
+    _: Option<&dyn epi::Storage>,
   ) {
-    /*
-    if let Some(storage) = storage {
-      *self = epi::get_value(storage, epi::APP_KEY).unwrap_or_default()
-    }
-    */
+
     // Large button text via overriding the HEADING style.
     let mut fonts = FontDefinitions::default();
 
@@ -290,13 +292,14 @@ impl epi::App for IntifaceDesktopApp {
       if core.config.show_extended_ui() {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
           ui.vertical(|ui| {
+            ui.selectable_value(current_screen, AppScreens::News, "News");
             ui.selectable_value(
               current_screen,
               AppScreens::DeviceSettings,
               "Device Settings",
             );
             ui.selectable_value(current_screen, AppScreens::DeviceTest, "Device Test");
-            ui.selectable_value(current_screen, AppScreens::DeviceSimulation, "Device Simulation");
+            ui.selectable_value(current_screen, AppScreens::DeviceSimulation, "Simulation");
             ui.selectable_value(current_screen, AppScreens::Settings, "App Settings");
             ui.selectable_value(current_screen, AppScreens::Log, "App Log");
             ui.selectable_value(current_screen, AppScreens::About, "Help/About");
@@ -309,6 +312,7 @@ impl epi::App for IntifaceDesktopApp {
             .show(ui, |ui| {
               ui.set_min_width(ui.available_width());
               match current_screen {
+                AppScreens::News => panels.news_panel.update(core, ui),
                 AppScreens::DeviceSettings => panels.device_settings_panel.update(core, ui),
                 AppScreens::DeviceTest => panels.device_test_panel.update(core, ui),
                 AppScreens::DeviceSimulation => panels.device_simulation_panel.update(core, ui),

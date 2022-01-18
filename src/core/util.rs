@@ -4,9 +4,11 @@ use rand::{distributions::Alphanumeric, thread_rng, Rng};
 pub const USER_DEVICE_CONFIG_FILENAME: &str = "buttplug-user-device-config.json";
 pub const DEVICE_CONFIG_FILENAME: &str = "buttplug-device-config.json";
 pub const INTIFACE_CONFIG_FILENAME: &str = "intiface.config.json";
+pub const INTIFACE_NEWS_FILENAME: &str = "intiface.news.md";
 pub const INTIFACE_APP_DIRECTORY_NAME: &str = "IntifaceDesktopRust";
 pub const INTIFACE_CONFIG_DIRECTORY_NAME: &str = "config";
 pub const INTIFACE_LOGGING_DIRECTORY_NAME: &str = "logs";
+pub const INTIFACE_NEWS_DIRECTORY_NAME: &str = "news";
 pub const INTIFACE_ENGINE_DIRECTORY_NAME: &str = "engine";
 
 #[cfg(target_os = "windows")]
@@ -67,6 +69,18 @@ pub fn engine_file_path() -> PathBuf {
 pub fn engine_file_path() -> PathBuf {
   let mut dir = PathBuf::from("c:\\Users\\qdot\\code\\intiface-cli-rs\\target\\debug");
   dir.push(EXECUTABLE_NAME);
+  dir
+}
+
+pub fn news_path() -> PathBuf {
+  let mut dir = app_path();
+  dir.push(INTIFACE_NEWS_DIRECTORY_NAME);
+  dir
+}
+
+pub fn news_file_path() -> PathBuf {
+  let mut dir = news_path();
+  dir.push(INTIFACE_NEWS_FILENAME);
   dir
 }
 
