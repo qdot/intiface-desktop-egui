@@ -1,6 +1,6 @@
 use crate::core::AppCore;
 use buttplug::{
-  client::{ButtplugClient, ButtplugClientEvent, RotateCommand, VibrateCommand},
+  client::{ButtplugClient, ButtplugClientEvent, RotateCommand, VibrateCommand, LinearCommand},
   connector::{ButtplugRemoteClientConnector, ButtplugWebsocketClientTransport},
   core::messages::{
     serializer::ButtplugClientJSONSerializer, ButtplugCurrentSpecDeviceMessageType,
@@ -18,7 +18,7 @@ pub struct DeviceTestPanel {
   // Store the "all" value and each individual actuator value in a tuple.
   vibrate_values: HashMap<u32, (f64, Vec<f64>)>,
   rotate_values: HashMap<u32, (f64, Vec<f64>)>,
-  linear_values: HashMap<u32, ((f64, f64), Vec<(f64, f64)>)>,
+  linear_values: HashMap<u32, ((u32, f64), Vec<(u32, f64)>)>,
 }
 
 impl DeviceTestPanel {
@@ -79,6 +79,7 @@ impl DeviceTestPanel {
                       .unwrap_or(0) as usize
                   ],
                 ));
+                let mut update = false;
                 if vibrate_value.1.len() > 1 {
                   if ui
                     .add(
@@ -89,17 +90,10 @@ impl DeviceTestPanel {
                   {
                     // .count() used to consume iterator.
                     vibrate_value.1.iter_mut().map(|v| *v = vibrate_value.0).count();
-                    let device_clone = device.clone();
-                    let level = vibrate_value.0;
-                    tokio::spawn(
-                      async move {
-                        device_clone.vibrate(VibrateCommand::Speed(level)).await;
-                      }
-                      .bind_hub(sentry::Hub::current().clone()),
-                    );
+                    update = true;
                   }
                 }
-                let mut update = false;
+                
                 for (index, speed) in vibrate_value.1.iter_mut().enumerate() {
                   if ui
                     .add(
@@ -140,6 +134,7 @@ impl DeviceTestPanel {
                       .unwrap_or(0) as usize
                   ],
                 ));
+                let mut update = false;
                 if rotate_value.1.len() > 1 {
                   if ui
                     .add(
@@ -150,22 +145,9 @@ impl DeviceTestPanel {
                   {
                     // .count() used to consume iterator.
                     rotate_value.1.iter_mut().map(|v| *v = rotate_value.0).count();
-                    let device_clone = device.clone();
-                    let level = rotate_value.0;
-                    tokio::spawn(
-                      async move {
-                        device_clone
-                          .rotate(RotateCommand::Rotate(
-                            level.abs(),
-                            level >= 0f64,
-                          ))
-                          .await;
-                      }
-                      .bind_hub(sentry::Hub::current().clone()),
-                    );
+                    update = true;
                   }
-                }
-                let mut update = false;
+                }                
                 for (index, speed) in rotate_value.1.iter_mut().enumerate() {
                   if ui
                     .add(
@@ -183,6 +165,78 @@ impl DeviceTestPanel {
                   tokio::spawn(
                     async move {
                       device_clone.rotate(RotateCommand::RotateVec(level.iter().map(|v| (v.abs(), *v >= 0f64)).collect())).await;
+                    }
+                    .bind_hub(sentry::Hub::current().clone()),
+                  );
+                }
+              }
+
+              if device
+                .allowed_messages
+                .contains_key(&ButtplugCurrentSpecDeviceMessageType::LinearCmd)
+              {
+                let linear_value = self.linear_values.entry(device.index()).or_insert((
+                  (0u32, 0f64),
+                  vec![
+                    (0u32, 0f64);
+                    device
+                      .allowed_messages
+                      .get(&ButtplugCurrentSpecDeviceMessageType::LinearCmd)
+                      .expect("Already tested.")
+                      .feature_count
+                      .unwrap_or(0) as usize
+                  ],
+                ));
+                let mut update = false;
+                if linear_value.1.len() > 1 {
+                  if ui
+                    .add(
+                      egui::Slider::new::<f64>(&mut linear_value.0.1, 0.0..=1.0)
+                        .text("Position (All Linear)"),
+                    )
+                    .changed()
+                  {
+                    update = true;
+                    linear_value.1.iter_mut().map(|v| *v = linear_value.0).count();
+                  }
+                  if ui
+                  .add(
+                    egui::Slider::new::<u32>(&mut linear_value.0.0, 0..=3000)
+                      .text("Move Time (All Linear)"),
+                  )
+                  .changed()
+                  {
+                    update = true;
+                    linear_value.1.iter_mut().map(|v| *v = linear_value.0).count();
+                  }
+                }
+                let mut update = false;
+                for (index, speed) in linear_value.1.iter_mut().enumerate() {
+                  if ui
+                    .add(
+                      egui::Slider::new::<f64>(&mut speed.1, 0.0..=1.0)
+                        .text(format!("Linear {} Position", index + 1)),
+                    )
+                    .changed()
+                  {
+                    update = true;
+                  }
+                  if ui
+                  .add(
+                    egui::Slider::new::<u32>(&mut speed.0, 0..=3000)
+                      .text(format!("Linear {} Move Time", index + 1)),
+                  )
+                  .changed()
+                  {
+                    update = true;
+                  }             
+                }
+                if ui.button("Move").clicked() {
+                  let device_clone = device.clone();
+                  let level = linear_value.1.clone();
+                  tokio::spawn(
+                    async move {
+                      device_clone.linear(LinearCommand::LinearVec(level)).await;
                     }
                     .bind_hub(sentry::Hub::current().clone()),
                   );
