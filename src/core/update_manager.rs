@@ -61,8 +61,8 @@ impl UpdateManager {
   fn update_internal_versions(current_engine_version: Arc<RwLock<Option<u32>>>, current_device_config_file_version: Arc<RwLock<Option<u32>>>) {
     if util::device_config_file_path().exists() {
       // TODO This could fail if the file is invalid.
-      let user_config_file = std::fs::read_to_string(util::user_device_config_file_path()).unwrap();
-      let version = load_protocol_config_from_json(&user_config_file, true).unwrap().version;
+      let config_file = std::fs::read_to_string(util::device_config_file_path()).unwrap();
+      let version = load_protocol_config_from_json(&config_file, true).unwrap().version;
       info!("Device config file version: {}", version);
       *current_device_config_file_version.write().unwrap() = Some(version)
     } else {
