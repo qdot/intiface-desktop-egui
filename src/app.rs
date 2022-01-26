@@ -193,23 +193,13 @@ impl epi::App for IntifaceDesktopApp {
     return "Intiface Desktop";
   }
 
-  /// Called by the framework to load old app state (if any).
-  //#[cfg(feature = "persistence")]
+
   fn setup(
     &mut self,
     ctx: &egui::Context,
     _frame: &epi::Frame,
     _: Option<&dyn epi::Storage>,
   ) {
-
-    // Large button text via overriding the HEADING style.
-    let mut fonts = FontDefinitions::default();
-
-    fonts
-      .family_and_size
-      .insert(TextStyle::Heading, (FontFamily::Proportional, 48.0));
-
-    ctx.set_fonts(fonts);
   }
 
   /// Called by the frame work to save state before shutdown.

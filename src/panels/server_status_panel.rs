@@ -2,11 +2,14 @@ use crate::{
   core::{engine_file_path, AppCore},
 };
 use super::grid::{GridBuilder, Padding, Size};
-use eframe::egui::{self, Button, Color32, RichText, TextStyle};
+use eframe::egui::{self, Button, Color32, RichText};
 use std::sync::{
   atomic::{AtomicBool, Ordering},
   Arc,
 };
+
+const STATUS_PANEL_HEIGHT: f32 = 65f32;
+const LARGE_ICON_SIZE: f32 = 48f32;
 
 #[derive(Default)]
 pub struct ServerStatusPanel {}
@@ -18,10 +21,10 @@ impl ServerStatusPanel {
     has_error_message: Arc<AtomicBool>,
     ui: &mut egui::Ui,
   ) {
-    ui.set_min_height(75f32);
-    ui.set_max_height(75f32);
+    ui.set_min_height(STATUS_PANEL_HEIGHT + 4.0);
+    ui.set_max_height(STATUS_PANEL_HEIGHT + 4.0);
     GridBuilder::new(ui, Padding::new(2.0, 1.0))
-      .size(Size::Absolute(75.0))
+      .size(Size::Absolute(STATUS_PANEL_HEIGHT))
       .size(Size::Remainder)
       .size(Size::Absolute(50.0))
       .size(Size::Absolute(20.0))
@@ -30,21 +33,21 @@ impl ServerStatusPanel {
           if engine_file_path().exists() {
             let server_button = if core.process_manager.is_running() {
               ui.add_sized(
-                [75.0, 75.0],
+                [STATUS_PANEL_HEIGHT, STATUS_PANEL_HEIGHT],
                 Button::new(
                   RichText::new("⬛")
                     .color(Color32::LIGHT_RED)
-                    .text_style(TextStyle::Heading),
+                    .size(48.0),
                 ),
               )
               .on_hover_text("Stop Server")
             } else {
               ui.add_sized(
-                [75.0, 75.0],
+                [STATUS_PANEL_HEIGHT, STATUS_PANEL_HEIGHT],
                 Button::new(
                   RichText::new("▶")
                     .color(Color32::GREEN)
-                    .text_style(TextStyle::Heading),
+                    .size(LARGE_ICON_SIZE),
                 ),
               )
               .on_hover_text("Start Server")
@@ -60,7 +63,7 @@ impl ServerStatusPanel {
             ui.button(
               RichText::new("🗙")
                 .color(Color32::WHITE)
-                .text_style(TextStyle::Heading),
+                .size(LARGE_ICON_SIZE),
             )
             .on_hover_text("Server not available, please run upgrade process.");
           }
@@ -69,7 +72,7 @@ impl ServerStatusPanel {
           ui.with_layout(
             egui::Layout::centered_and_justified(egui::Direction::TopDown).with_cross_align(egui::Align::Center),
             |ui| {
-              ui.vertical(|ui| {
+              ui.vertical_centered(|ui| {
                 ui.horizontal(|ui| {
                   ui.label(RichText::new("Server Status:").strong());
                   if core.process_manager.is_running() {
@@ -114,21 +117,21 @@ impl ServerStatusPanel {
             ui.label(
               RichText::new("🙉")
                 .color(Color32::LIGHT_RED)
-                .text_style(TextStyle::Heading),
+                .size(LARGE_ICON_SIZE),
             )
             .on_hover_text("Server not running");
           } else if !core.process_manager.client_name().is_some() {
             ui.label(
               RichText::new("👂")
                 .color(Color32::LIGHT_BLUE)
-                .text_style(TextStyle::Heading),
+                .size(LARGE_ICON_SIZE),
             )
             .on_hover_text("Server running, waiting for client connection");
           } else {
             ui.label(
               RichText::new("📞")
                 .color(Color32::GREEN)
-                .text_style(TextStyle::Heading),
+                .size(LARGE_ICON_SIZE),
             )
             .on_hover_text("Server connected to client");
           }
