@@ -42,6 +42,7 @@ struct AppPanels {
   news_panel: NewsPanel,
   server_status_panel: ServerStatusPanel,
   settings_panel: SettingsPanel,
+  first_use_panel: FirstUsePanel,
 }
 
 pub struct IntifaceDesktopApp {
@@ -239,7 +240,7 @@ impl epi::App for IntifaceDesktopApp {
       });
     } else if !core.config.has_run_first_use() {
       egui::CentralPanel::default().show(ctx, |ui| {
-        FirstUsePanel::default().update(core, ui);
+        panels.first_use_panel.update(core, ui);
       });
     } else {
       // Check for UI overrides
