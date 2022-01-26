@@ -11,7 +11,6 @@ use super::panels::{
 };
 use crate::core::{load_config_file, save_config_file, AppCore, IntifaceConfiguration};
 use eframe::{egui, epi};
-use egui::{FontDefinitions, FontFamily, TextStyle};
 use std::{cell::Cell, rc::Rc, time::SystemTime, sync::{Arc, atomic::AtomicBool}};
 use time::OffsetDateTime;
 use tracing::{info, warn};
