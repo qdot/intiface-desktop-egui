@@ -1,4 +1,4 @@
-use super::{util, IntifaceConfiguration};
+use super::{util, IntifaceConfiguration, news_file_path};
 use buttplug::util::device_configuration::load_protocol_config_from_json;
 use sentry::SentryFutureExt;
 use std::{
@@ -25,6 +25,7 @@ const INTIFACE_ENGINE_REPO: &str = "intiface-cli-rs";
 // const PRERELEASE_TAG: &str = "420.69.666";
 const DEVICE_CONFIG_VERSION_URL: &str = "https://buttplug-rs-device-config.buttplug.io/version";
 const DEVICE_CONFIG_URL: &str = "https://buttplug-rs-device-config.buttplug.io";
+const NEWS_URL: &str = "https://intiface-news.intiface.com/intiface.news.md";
 
 #[derive(Debug, Error)]
 pub enum UpdateError {
@@ -44,6 +45,7 @@ pub struct UpdateManager {
   current_application_version: String,
   current_engine_version: Arc<RwLock<Option<u32>>>,
   current_device_config_file_version: Arc<RwLock<Option<u32>>>,
+  has_new_news: Arc<AtomicBool>,
   is_updating: Arc<AtomicBool>,
   has_errors: Arc<AtomicBool>,
 }
@@ -56,6 +58,32 @@ impl UpdateManager {
     };
     UpdateManager::update_internal_versions(manager.current_engine_version.clone(), manager.current_device_config_file_version.clone());
     manager
+  }
+
+  async fn update_news(has_new_news: Arc<AtomicBool>) {
+    let downloaded_news_file = reqwest::get(NEWS_URL)
+      .await
+      /*
+      .map_err(|e| {
+        UpdateError::ConnectionError(DEVICE_CONFIG_VERSION_URL.to_string(), e.to_string())
+      })?
+      */
+      .unwrap()
+      .text()
+      .await
+      .unwrap();
+    //.map_err(|e| UpdateError::InvalidData(e.to_string()))?;
+    let news_file = news_file_path();
+    let news_str = if !news_file.exists() {
+      "News file not available. Please run update.".to_owned()
+    } else {
+      tokio::fs::read_to_string(&news_file).await.unwrap()
+    };
+    if downloaded_news_file != news_str {
+      info!("Updating news file...");
+      tokio::fs::write(news_file, downloaded_news_file).await.unwrap();
+      has_new_news.store(true, Ordering::SeqCst);
+    }
   }
 
   fn update_internal_versions(current_engine_version: Arc<RwLock<Option<u32>>>, current_device_config_file_version: Arc<RwLock<Option<u32>>>) {
@@ -121,12 +149,15 @@ impl UpdateManager {
     let application_check_fut = UpdateManager::get_latest_application_version(
       self.latest_application_version.clone(),
     );
+
+    let news_check_fut = UpdateManager::update_news(self.has_new_news.clone());
     tokio::spawn(async move {
       is_updating.store(true, Ordering::SeqCst);
       tokio::join!(
         async move { device_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
         async move { engine_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
-        async move { application_check_fut.await }.bind_hub(sentry::Hub::current().clone())
+        async move { application_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
+        async move { news_check_fut.await }.bind_hub(sentry::Hub::current().clone()),
       );
       is_updating.store(false, Ordering::SeqCst);
     });
@@ -172,6 +203,14 @@ impl UpdateManager {
 
   pub fn needs_updates(&self) -> bool {
     self.needs_internal_updates() || self.needs_application_update()
+  }
+
+  pub fn has_new_news(&self) -> bool {
+    self.has_new_news.load(Ordering::SeqCst)
+  }
+
+  pub fn reset_news_status(&self) {
+    self.has_new_news.store(false, Ordering::SeqCst)
   }
 
   pub fn is_updating(&self) -> bool {

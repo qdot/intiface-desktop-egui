@@ -168,8 +168,22 @@ impl ServerStatusPanel {
               }))
               .on_hover_text("No updates available");
             }
-            ui.button(RichText::new("？").color(Color32::GREEN))
-              .on_hover_text("Go to docs/help website");
+            if core.config.unread_news() {
+              if ui
+                .button(RichText::new("📰").color(Color32::WHITE))
+                .on_hover_text("Unread news available")
+                .clicked()
+              {
+                *core.config.force_open_news_mut() = true;
+              }
+            } else {
+              ui.add(egui::Button::new("📰").frame(false).sense(egui::Sense {
+                click: false,
+                drag: false,
+                focusable: false,
+              }))
+              .on_hover_text("No new news");
+            }
           });
         });
       });

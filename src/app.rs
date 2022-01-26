@@ -228,6 +228,15 @@ impl epi::App for IntifaceDesktopApp {
       _logging_guard: _,
       _sentry_guard: _,
     } = self;
+
+    // While it's not particularly costly to check this every loop, it's really silly. We should
+    // only update this in the config as needed instead of having to constantly poll for something
+    // that will happen very rarely.
+    if core.update_manager.has_new_news() {
+      *core.config.unread_news_mut() = true;
+      core.update_manager.reset_news_status();
+    }
+
     if let Some(d) = core.modal_manager.get_modal_dialog() {
       egui::CentralPanel::default().show(ctx, |ui| {
         ui.with_layout(
@@ -247,12 +256,20 @@ impl epi::App for IntifaceDesktopApp {
       // Check for UI overrides
       if core.config.force_open_log() {
         *core.config.show_extended_ui_mut() = true;
+        *core.config.force_open_log_mut() = false;
         save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
         *current_screen = AppScreens::Log;
       } else if core.config.force_open_updates() {
         *core.config.show_extended_ui_mut() = true;
+        // Don't reset updates here, we'll do that in the settings dialog so we open the correct
+        // header.
         save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
         *current_screen = AppScreens::Settings;
+      } else if core.config.force_open_news() {
+        *core.config.show_extended_ui_mut() = true;
+        *core.config.force_open_news_mut() = false;
+        save_config_file(&serde_json::to_string(&core.config).unwrap()).unwrap();
+        *current_screen = AppScreens::News;
       }
 
       let mut available_minimized_width = 0f32;

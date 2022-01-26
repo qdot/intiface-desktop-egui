@@ -90,6 +90,12 @@ pub struct IntifaceConfiguration {
   #[getset(get_copy = "pub")]
   #[serde(skip)]
   force_open_updates: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(skip)]
+  force_open_news: bool,
+  #[getset(get_copy = "pub")]
+  #[serde(default)]
+  unread_news: bool,
 }
 
 impl Default for IntifaceConfiguration {
@@ -122,6 +128,8 @@ impl Default for IntifaceConfiguration {
       has_error_message: false,
       force_open_log: false,
       force_open_updates: false,
+      force_open_news: false,
+      unread_news: false,
     }
   }
 }
