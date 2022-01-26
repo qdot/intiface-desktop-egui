@@ -1,3 +1,7 @@
+*2021-01-25: Checking to see if news updates work*
+
+Seeing if this new feature actually works!
+
 *2021-01-18: The very first Intiface Desktop News Entry*
 
 HOUSTON WE ARE ON THE FUCKING MOON
