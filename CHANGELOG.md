@@ -1,3 +1,11 @@
+# 2.0.999 (Second Beta) (2022-01-26)
+
+## Features
+
+- Added News Panel
+- Added Device Simulation Panel
+- Rebuilt Server Status GUI to use grid layout
+- Change panel storage model to persist through app lifetime
 
 # 1.0.999 (First Beta) (2022-01-04)
 
